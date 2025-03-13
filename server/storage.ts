@@ -54,6 +54,15 @@ export class MemStorage implements IStorage {
       id,
       status: 'pending',
       inQueue: true,
+      trim: insertVehicle.trim || null,
+      make: insertVehicle.make || null,
+      model: insertVehicle.model || null,
+      year: insertVehicle.year || null,
+      mileage: insertVehicle.mileage || null,
+      price: insertVehicle.price || null,
+      description: insertVehicle.description || null,
+      condition: insertVehicle.condition || null,
+      videos: insertVehicle.videos || [],
     };
     this.vehicles.set(id, vehicle);
     return vehicle;

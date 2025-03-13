@@ -88,7 +88,7 @@ export async function registerRoutes(app: Express) {
   // Public vehicle routes
   app.get("/api/vehicles", async (_req, res) => {
     const vehicles = await storage.getVehicles();
-    res.json(vehicles.filter(v => v.status === 'active'));
+    res.json(vehicles); // Return all vehicles, not just active ones
   });
 
   app.get("/api/vehicles/:id", async (req, res) => {
@@ -103,7 +103,11 @@ export async function registerRoutes(app: Express) {
     if (!result.success) {
       return res.status(400).json({ message: result.error.message });
     }
-    const vehicle = await storage.createVehicle(result.data);
+    const vehicle = await storage.createVehicle({
+      ...result.data,
+      status: 'pending',
+      inQueue: true,
+    });
     res.status(201).json(vehicle);
   });
 
