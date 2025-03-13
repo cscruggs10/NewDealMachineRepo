@@ -1,21 +1,24 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Vehicle, insertVehicleSchema } from "@shared/schema";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Vehicle } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
 
 export function VehicleComplete() {
   const { toast } = useToast();
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [formData, setFormData] = useState({
+    year: '',
+    make: '',
+    model: '',
+    mileage: '',
+    price: '',
+    condition: 'Deal Machine Certified'
+  });
 
   const { data: vehicles, isLoading } = useQuery<Vehicle[]>({
     queryKey: ["/api/vehicles"],
@@ -23,42 +26,17 @@ export function VehicleComplete() {
 
   const queuedVehicles = vehicles?.filter(v => v.inQueue) || [];
 
-  const form = useForm({
-    resolver: zodResolver(insertVehicleSchema),
-    defaultValues: {
-      year: 0,
-      make: "",
-      model: "",
-      trim: "",
-      mileage: 0,
-      price: "",
-      condition: "",
-      vin: "",
-      videos: [],
-    }
-  });
-
   const updateVehicle = useMutation({
-    mutationFn: async (data: any) => {
-      if (!selectedVehicle) {
-        throw new Error("No vehicle selected");
-      }
-
-      console.log("Form data:", data);
-
-      // Make sure to convert string numbers to actual numbers
+    mutationFn: async (vehicleId: number) => {
       const payload = {
-        ...data,
-        year: Number(data.year),
-        mileage: Number(data.mileage),
-        vin: selectedVehicle.vin,
-        videos: selectedVehicle.videos,
+        ...formData,
+        year: parseInt(formData.year),
+        mileage: parseInt(formData.mileage),
         status: "active",
         inQueue: false,
       };
 
-      console.log("Sending payload:", payload);
-      return apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, payload);
+      return apiRequest("PATCH", `/api/vehicles/${vehicleId}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
@@ -67,13 +45,19 @@ export function VehicleComplete() {
         description: "Vehicle listing completed",
       });
       setSelectedVehicle(null);
-      form.reset();
+      setFormData({
+        year: '',
+        make: '',
+        model: '',
+        mileage: '',
+        price: '',
+        condition: 'Deal Machine Certified'
+      });
     },
-    onError: (error: any) => {
-      console.error("Update error:", error);
+    onError: () => {
       toast({
         title: "Error",
-        description: error.message || "Failed to complete vehicle listing",
+        description: "Failed to complete vehicle listing",
         variant: "destructive",
       });
     },
@@ -96,6 +80,12 @@ export function VehicleComplete() {
     );
   }
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedVehicle) return;
+    updateVehicle.mutate(selectedVehicle.id);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -104,7 +94,6 @@ export function VehicleComplete() {
       <CardContent>
         {!selectedVehicle ? (
           <div className="space-y-4">
-            <h3 className="font-medium mb-2">Vehicles in Queue</h3>
             {queuedVehicles.map((vehicle) => (
               <Card key={vehicle.id} className="hover:bg-accent/50">
                 <CardContent className="p-4">
@@ -115,10 +104,7 @@ export function VehicleComplete() {
                         <p className="text-sm text-muted-foreground">Video uploaded</p>
                       )}
                     </div>
-                    <Button 
-                      onClick={() => setSelectedVehicle(vehicle)}
-                      variant="outline"
-                    >
+                    <Button onClick={() => setSelectedVehicle(vehicle)}>
                       Complete
                     </Button>
                   </div>
@@ -127,150 +113,67 @@ export function VehicleComplete() {
             ))}
           </div>
         ) : (
-          <Form {...form}>
-            <form 
-              onSubmit={form.handleSubmit((data) => updateVehicle.mutate(data))} 
-              className="space-y-4"
-            >
-              <FormField
-                control={form.control}
-                name="year"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Year</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Year</label>
+              <Input
+                type="number"
+                value={formData.year}
+                onChange={(e) => setFormData(prev => ({ ...prev, year: e.target.value }))}
+                required
               />
+            </div>
 
-              <FormField
-                control={form.control}
-                name="make"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Make</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <div>
+              <label className="block text-sm font-medium mb-1">Make</label>
+              <Input
+                value={formData.make}
+                onChange={(e) => setFormData(prev => ({ ...prev, make: e.target.value }))}
+                required
               />
+            </div>
 
-              <FormField
-                control={form.control}
-                name="model"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Model</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <div>
+              <label className="block text-sm font-medium mb-1">Model</label>
+              <Input
+                value={formData.model}
+                onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
+                required
               />
+            </div>
 
-              <FormField
-                control={form.control}
-                name="trim"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Trim</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <div>
+              <label className="block text-sm font-medium mb-1">Mileage</label>
+              <Input
+                type="number"
+                value={formData.mileage}
+                onChange={(e) => setFormData(prev => ({ ...prev, mileage: e.target.value }))}
+                required
               />
+            </div>
 
-              <FormField
-                control={form.control}
-                name="mileage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mileage</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <div>
+              <label className="block text-sm font-medium mb-1">Price</label>
+              <Input
+                value={formData.price}
+                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                required
               />
+            </div>
 
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="condition"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Certification</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select certification type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Deal Machine Certified">Deal Machine Certified</SelectItem>
-                        <SelectItem value="Auction Certified">Auction Certified</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex gap-2">
-                <Button 
-                  type="submit" 
-                  className="flex-1"
-                  disabled={updateVehicle.isPending}
-                >
-                  {updateVehicle.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Completing...
-                    </>
-                  ) : (
-                    'Complete Listing'
-                  )}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={() => setSelectedVehicle(null)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </Form>
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1">
+                Complete Listing
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={() => setSelectedVehicle(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
         )}
       </CardContent>
     </Card>
