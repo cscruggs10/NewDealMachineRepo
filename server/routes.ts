@@ -2,10 +2,63 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema } from "@shared/schema";
-import { google } from "@googleapis/sheets";
+import { google } from "googleapis";
 
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
+
+  // Google Sheets sync endpoint
+  app.post("/api/sync-vehicles", async (_req, res) => {
+    try {
+      const auth = new google.auth.GoogleAuth({
+        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        key: process.env.GOOGLE_API_KEY,
+      });
+
+      const sheets = google.sheets({ version: 'v4', auth });
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        range: 'Vehicles!A2:J',
+      });
+
+      const rows = response.data.values;
+      if (!rows) {
+        return res.json({ message: "No data found in sheet", vehicles: [] });
+      }
+
+      const vehicles = await Promise.all(rows.map(async row => {
+        const vehicleData = {
+          vin: row[0],
+          year: parseInt(row[1]),
+          make: row[2],
+          model: row[3],
+          mileage: parseInt(row[4]),
+          price: row[5],
+          description: row[6] || null,
+          condition: row[7] || null,
+          images: row[8] ? row[8].split(',').map((url: string) => url.trim()) : [],
+          videos: row[9] ? row[9].split(',').map((url: string) => url.trim()) : [],
+        };
+
+        const result = insertVehicleSchema.safeParse(vehicleData);
+        if (!result.success) {
+          console.error(`Invalid vehicle data:`, result.error);
+          return null;
+        }
+
+        return storage.createVehicle(result.data);
+      }));
+
+      const validVehicles = vehicles.filter(v => v !== null);
+      res.json({ 
+        message: `Successfully synced ${validVehicles.length} vehicles`,
+        vehicles: validVehicles
+      });
+    } catch (error) {
+      console.error('Error syncing vehicles:', error);
+      res.status(500).json({ message: "Failed to sync vehicles from sheet" });
+    }
+  });
 
   // Public vehicle routes
   app.get("/api/vehicles", async (_req, res) => {
@@ -41,7 +94,7 @@ export async function registerRoutes(app: Express) {
   app.post("/api/verify-code", async (req, res) => {
     const { code } = req.body;
     if (!code) return res.status(400).json({ message: "Code required" });
-    
+
     const buyCode = await storage.getBuyCode(code);
     if (!buyCode || !buyCode.active) {
       return res.status(403).json({ message: "Invalid buy code" });
@@ -70,7 +123,7 @@ export async function registerRoutes(app: Express) {
   app.patch("/api/offers/:id", async (req, res) => {
     const { status } = req.body;
     if (!status) return res.status(400).json({ message: "Status required" });
-    
+
     const offer = await storage.updateOfferStatus(
       parseInt(req.params.id),
       status

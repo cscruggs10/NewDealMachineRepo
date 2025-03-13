@@ -1,16 +1,43 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PricingQueue } from "@/components/admin/PricingQueue";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Vehicle, Offer } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { RefreshCw } from "lucide-react";
 
 export default function Admin() {
+  const { toast } = useToast();
+
   const { data: vehicles } = useQuery<Vehicle[]>({
     queryKey: ["/api/vehicles"],
   });
 
   const { data: offers } = useQuery<Offer[]>({
     queryKey: ["/api/offers"],
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/sync-vehicles", {});
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
+      toast({
+        title: "Success",
+        description: data.message,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to sync vehicles from Google Sheet",
+        variant: "destructive",
+      });
+    },
   });
 
   const stats = {
@@ -22,7 +49,20 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <Button 
+            onClick={() => syncMutation.mutate()}
+            disabled={syncMutation.isPending}
+          >
+            {syncMutation.isPending ? (
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Sync from Google Sheet
+          </Button>
+        </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
