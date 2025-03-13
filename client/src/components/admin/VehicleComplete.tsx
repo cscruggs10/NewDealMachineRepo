@@ -12,6 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export function VehicleComplete() {
   const { toast } = useToast();
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+
+  const { data: vehicles, isLoading } = useQuery<Vehicle[]>({
+    queryKey: ["/api/vehicles"],
+  });
+
+  const queuedVehicles = vehicles?.filter(v => v.inQueue) || [];
+
   const [formData, setFormData] = useState({
     year: '',
     make: '',
@@ -21,25 +28,26 @@ export function VehicleComplete() {
     condition: 'Deal Machine Certified'
   });
 
-  const { data: vehicles, isLoading } = useQuery<Vehicle[]>({
-    queryKey: ["/api/vehicles"],
-  });
-
-  const queuedVehicles = vehicles?.filter(v => v.inQueue) || [];
+  // Log vehicles data to check video URLs
+  console.log("Queued vehicles:", queuedVehicles);
 
   const updateVehicle = useMutation({
     mutationFn: async (vehicleId: number) => {
+      // Keep existing video and VIN data
+      const vehicle = queuedVehicles.find(v => v.id === vehicleId);
+      if (!vehicle) throw new Error("Vehicle not found");
+
       const payload = {
         ...formData,
         year: Number(formData.year),
         mileage: Number(formData.mileage),
-        videos: selectedVehicle?.videos || [], // Preserve videos
-        vin: selectedVehicle?.vin, // Preserve VIN
+        videos: vehicle.videos, // Preserve existing videos
+        vin: vehicle.vin, // Preserve VIN
         status: "active",
         inQueue: false,
       };
 
-      console.log("Submitting update:", payload);
+      console.log("Updating vehicle with payload:", payload);
       return apiRequest("PATCH", `/api/vehicles/${vehicleId}`, payload);
     },
     onSuccess: () => {
@@ -85,12 +93,6 @@ export function VehicleComplete() {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedVehicle) return;
-    updateVehicle.mutate(selectedVehicle.id);
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -105,18 +107,23 @@ export function VehicleComplete() {
                   <div className="flex justify-between items-center">
                     <div className="space-y-2">
                       <p className="font-medium">VIN: {vehicle.vin}</p>
-                      {vehicle.videos?.[0] && (
-                        <a 
-                          href={vehicle.videos[0]}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
-                        >
-                          View Walkaround Video
-                        </a>
+                      {vehicle.videos && vehicle.videos[0] && (
+                        <div className="text-sm">
+                          <a 
+                            href={vehicle.videos[0]}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            Click to view walkthrough video
+                          </a>
+                        </div>
                       )}
                     </div>
-                    <Button onClick={() => setSelectedVehicle(vehicle)}>
+                    <Button onClick={() => {
+                      console.log("Selected vehicle:", vehicle);
+                      setSelectedVehicle(vehicle);
+                    }}>
                       Complete
                     </Button>
                   </div>
@@ -125,21 +132,29 @@ export function VehicleComplete() {
             ))}
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {selectedVehicle.videos?.[0] && (
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              updateVehicle.mutate(selectedVehicle.id);
+            }} 
+            className="space-y-4"
+          >
+            {/* Video Link Section */}
+            {selectedVehicle.videos && selectedVehicle.videos[0] && (
               <div className="mb-6 p-4 bg-muted rounded-lg">
-                <h3 className="text-sm font-medium mb-2">Walkaround Video</h3>
+                <h3 className="text-sm font-medium mb-2">Vehicle Video</h3>
                 <a 
                   href={selectedVehicle.videos[0]}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
                 >
-                  View Video
+                  View walkthrough video
                 </a>
               </div>
             )}
 
+            {/* Vehicle Details Form */}
             <div>
               <label className="block text-sm font-medium mb-1">Year</label>
               <Input
@@ -186,14 +201,18 @@ export function VehicleComplete() {
               />
             </div>
 
+            {/* Certification Selection */}
             <div>
-              <label className="block text-sm font-medium mb-1">Certification</label>
+              <label className="block text-sm font-medium mb-1">Certification Type</label>
               <Select 
                 value={formData.condition}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
+                onValueChange={(value) => {
+                  console.log("Selected certification:", value);
+                  setFormData(prev => ({ ...prev, condition: value }));
+                }}
               >
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select certification type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Deal Machine Certified">Deal Machine Certified</SelectItem>
