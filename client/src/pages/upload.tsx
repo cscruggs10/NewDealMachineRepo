@@ -13,6 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { uploadMedia } from "@/lib/upload";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { Loader2, Upload } from "lucide-react";
+import { VinScanner } from "@/components/scanner/VinScanner";
 
 export default function UploadPage() {
   const { toast } = useToast();
@@ -42,7 +43,6 @@ export default function UploadPage() {
 
   const createVehicle = useMutation({
     mutationFn: async (data: any) => {
-      // First upload media files if any
       let uploadedImages: string[] = [];
       let uploadedVideos: string[] = [];
 
@@ -62,7 +62,6 @@ export default function UploadPage() {
         }
       }
 
-      // Then create the vehicle with media URLs
       return apiRequest("POST", "/api/vehicles", {
         ...data,
         images: uploadedImages,
@@ -93,6 +92,10 @@ export default function UploadPage() {
     }));
   };
 
+  const handleVinScan = (scannedVin: string) => {
+    form.setValue("vin", scannedVin);
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-3xl mx-auto">
@@ -103,19 +106,26 @@ export default function UploadPage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit((data) => createVehicle.mutate(data))} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="vin"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>VIN</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter VIN number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <FormField
+                      control={form.control}
+                      name="vin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>VIN</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter VIN number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <VinScanner onScan={handleVinScan} />
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -198,10 +208,10 @@ export default function UploadPage() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Enter vehicle description" 
+                        <Textarea
+                          placeholder="Enter vehicle description"
                           className="min-h-[100px]"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -229,8 +239,8 @@ export default function UploadPage() {
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full"
                   disabled={createVehicle.isPending || uploadingMedia}
                 >
