@@ -1,8 +1,11 @@
 import { 
   type Vehicle, type InsertVehicle,
   type BuyCode, type InsertBuyCode,
-  type Offer, type InsertOffer
+  type Offer, type InsertOffer,
+  vehicles, buyCodes, offers
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Vehicles
@@ -11,108 +14,73 @@ export interface IStorage {
   getVehicleByVin(vin: string): Promise<Vehicle | undefined>;
   createVehicle(vehicle: InsertVehicle): Promise<Vehicle>;
   updateVehicle(id: number, vehicle: Partial<Vehicle>): Promise<Vehicle>;
-  
+
   // Buy Codes
   getBuyCode(code: string): Promise<BuyCode | undefined>;
   createBuyCode(buyCode: InsertBuyCode): Promise<BuyCode>;
-  
+
   // Offers
   getOffers(vehicleId: number): Promise<Offer[]>;
   createOffer(offer: InsertOffer): Promise<Offer>;
   updateOfferStatus(id: number, status: string): Promise<Offer>;
 }
 
-export class MemStorage implements IStorage {
-  private vehicles: Map<number, Vehicle>;
-  private buyCodes: Map<number, BuyCode>;
-  private offers: Map<number, Offer>;
-  private currentIds: { vehicle: number; buyCode: number; offer: number };
-
-  constructor() {
-    this.vehicles = new Map();
-    this.buyCodes = new Map();
-    this.offers = new Map();
-    this.currentIds = { vehicle: 1, buyCode: 1, offer: 1 };
-  }
-
+export class DatabaseStorage implements IStorage {
   async getVehicles(): Promise<Vehicle[]> {
-    return Array.from(this.vehicles.values());
+    return db.select().from(vehicles);
   }
 
   async getVehicle(id: number): Promise<Vehicle | undefined> {
-    return this.vehicles.get(id);
+    const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, id));
+    return vehicle;
   }
 
   async getVehicleByVin(vin: string): Promise<Vehicle | undefined> {
-    return Array.from(this.vehicles.values()).find(v => v.vin === vin);
+    const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.vin, vin));
+    return vehicle;
   }
 
   async createVehicle(insertVehicle: InsertVehicle): Promise<Vehicle> {
-    const id = this.currentIds.vehicle++;
-    const vehicle: Vehicle = {
-      ...insertVehicle,
-      id,
-      status: 'pending',
-      inQueue: true,
-      trim: insertVehicle.trim || null,
-      make: insertVehicle.make || null,
-      model: insertVehicle.model || null,
-      year: insertVehicle.year || null,
-      mileage: insertVehicle.mileage || null,
-      price: insertVehicle.price || null,
-      description: insertVehicle.description || null,
-      condition: insertVehicle.condition || null,
-      videos: insertVehicle.videos || [],
-    };
-    this.vehicles.set(id, vehicle);
+    const [vehicle] = await db.insert(vehicles).values(insertVehicle).returning();
     return vehicle;
   }
 
   async updateVehicle(id: number, update: Partial<Vehicle>): Promise<Vehicle> {
-    const vehicle = await this.getVehicle(id);
-    if (!vehicle) throw new Error('Vehicle not found');
-    
-    const updated = { ...vehicle, ...update };
-    this.vehicles.set(id, updated);
-    return updated;
+    const [vehicle] = await db
+      .update(vehicles)
+      .set(update)
+      .where(eq(vehicles.id, id))
+      .returning();
+    return vehicle;
   }
 
   async getBuyCode(code: string): Promise<BuyCode | undefined> {
-    return Array.from(this.buyCodes.values()).find(bc => bc.code === code);
+    const [buyCode] = await db.select().from(buyCodes).where(eq(buyCodes.code, code));
+    return buyCode;
   }
 
   async createBuyCode(insertBuyCode: InsertBuyCode): Promise<BuyCode> {
-    const id = this.currentIds.buyCode++;
-    const buyCode: BuyCode = { ...insertBuyCode, id, active: true };
-    this.buyCodes.set(id, buyCode);
+    const [buyCode] = await db.insert(buyCodes).values(insertBuyCode).returning();
     return buyCode;
   }
 
   async getOffers(vehicleId: number): Promise<Offer[]> {
-    return Array.from(this.offers.values())
-      .filter(o => o.vehicleId === vehicleId);
+    return db.select().from(offers).where(eq(offers.vehicleId, vehicleId));
   }
 
   async createOffer(insertOffer: InsertOffer): Promise<Offer> {
-    const id = this.currentIds.offer++;
-    const offer: Offer = {
-      ...insertOffer,
-      id,
-      status: 'pending',
-      createdAt: new Date(),
-    };
-    this.offers.set(id, offer);
+    const [offer] = await db.insert(offers).values(insertOffer).returning();
     return offer;
   }
 
   async updateOfferStatus(id: number, status: string): Promise<Offer> {
-    const offer = this.offers.get(id);
-    if (!offer) throw new Error('Offer not found');
-    
-    const updated = { ...offer, status };
-    this.offers.set(id, updated);
-    return updated;
+    const [offer] = await db
+      .update(offers)
+      .set({ status })
+      .where(eq(offers.id, id))
+      .returning();
+    return offer;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
