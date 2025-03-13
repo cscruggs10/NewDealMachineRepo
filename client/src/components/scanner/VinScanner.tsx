@@ -11,19 +11,30 @@ export function VinScanner({ onScan }: VinScannerProps) {
   const { toast } = useToast();
 
   const handleVinInfoApp = () => {
-    // Open VIN Info app
-    const vinInfoAppUrl = "https://vininfo.app/scan";
+    try {
+      // Direct link to VIN Info app scanner
+      const vinInfoAppUrl = "vininfo://scan";
 
-    // Store callback info in localStorage
-    localStorage.setItem('vinScanCallback', window.location.href);
+      // Try to open the app first
+      window.location.href = vinInfoAppUrl;
 
-    // Open in new window/tab
-    window.open(vinInfoAppUrl, '_blank');
+      // After a short delay, if the app didn't open, redirect to the web version
+      setTimeout(() => {
+        window.location.href = "https://vininfo.app/scan";
+      }, 100);
 
-    toast({
-      title: "VIN Scanner",
-      description: "Opening VIN Info app for scanning. Please copy the VIN after scanning.",
-    });
+      toast({
+        title: "Opening VIN Scanner",
+        description: "Opening VIN Info app for scanning...",
+      });
+    } catch (error) {
+      console.error("Error opening VIN Info app:", error);
+      toast({
+        title: "Error",
+        description: "Unable to open VIN Scanner. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
