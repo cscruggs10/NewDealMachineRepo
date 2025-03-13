@@ -166,5 +166,20 @@ export async function registerRoutes(app: Express) {
     res.status(201).json(buyCode);
   });
 
+  // Add upload endpoint after other routes
+  app.post("/api/upload", async (req, res) => {
+    try {
+      console.log("Received upload request");
+      // For now, mock successful upload
+      // In production, this would handle actual file uploads to storage
+      // Return mock URLs for testing
+      const mockUrls = ["https://example.com/mock-file-1.jpg"];
+      res.json(mockUrls);
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ message: "Failed to upload files" });
+    }
+  });
+
   return httpServer;
 }
