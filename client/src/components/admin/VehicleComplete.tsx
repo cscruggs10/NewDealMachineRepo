@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Vehicle } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 export function VehicleComplete() {
   const { toast } = useToast();
@@ -20,11 +20,6 @@ export function VehicleComplete() {
   const queuedVehicles = vehicles?.filter(v => v.inQueue) || [];
 
   const [formData, setFormData] = useState({
-    vin: '',
-    year: '',
-    make: '',
-    model: '',
-    trim: '',
     mileage: '',
     price: '',
     condition: ''
@@ -32,15 +27,15 @@ export function VehicleComplete() {
 
   const updateVehicle = useMutation({
     mutationFn: async (vehicleId: number) => {
-      // Keep existing video data
+      // Keep existing vehicle data and videos
       const vehicle = queuedVehicles.find(v => v.id === vehicleId);
       if (!vehicle) throw new Error("Vehicle not found");
 
       const payload = {
-        ...formData,
-        year: Number(formData.year),
+        ...vehicle, // Keep all VIN-decoded data
         mileage: Number(formData.mileage),
-        videos: vehicle.videos, // Preserve existing videos
+        price: formData.price,
+        condition: formData.condition,
         status: "active",
         inQueue: false,
       };
@@ -56,11 +51,6 @@ export function VehicleComplete() {
       });
       setSelectedVehicle(null);
       setFormData({
-        vin: '',
-        year: '',
-        make: '',
-        model: '',
-        trim: '',
         mileage: '',
         price: '',
         condition: ''
@@ -112,7 +102,12 @@ export function VehicleComplete() {
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center">
                     <div className="space-y-2">
-                      <p className="font-medium">VIN: {vehicle.vin}</p>
+                      <div>
+                        <p className="font-medium text-lg">
+                          {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.trim}
+                        </p>
+                        <p className="text-sm text-muted-foreground">VIN: {vehicle.vin}</p>
+                      </div>
                       {vehicle.videos && vehicle.videos[0] && (
                         <a 
                           href={vehicle.videos[0]} 
@@ -124,11 +119,7 @@ export function VehicleComplete() {
                         </a>
                       )}
                     </div>
-                    <Button onClick={() => {
-                      setSelectedVehicle(vehicle);
-                      // Pre-fill the VIN
-                      setFormData(prev => ({ ...prev, vin: vehicle.vin }));
-                    }}>
+                    <Button onClick={() => setSelectedVehicle(vehicle)}>
                       Complete
                     </Button>
                   </div>
@@ -137,10 +128,20 @@ export function VehicleComplete() {
             ))}
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Video Link Section */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Display decoded vehicle info */}
+            <div className="bg-muted p-4 rounded-lg space-y-2">
+              <h3 className="font-medium">Vehicle Information (From VIN)</h3>
+              <p>
+                {selectedVehicle.year} {selectedVehicle.make} {selectedVehicle.model}
+                {selectedVehicle.trim && ` ${selectedVehicle.trim}`}
+              </p>
+              <p className="text-sm text-muted-foreground">VIN: {selectedVehicle.vin}</p>
+            </div>
+
+            {/* Video preview if available */}
             {selectedVehicle.videos && selectedVehicle.videos[0] && (
-              <div className="mb-6 p-4 bg-muted rounded-lg">
+              <div className="p-4 bg-muted rounded-lg">
                 <h3 className="text-sm font-medium mb-2">Vehicle Video</h3>
                 <a 
                   href={selectedVehicle.videos[0]}
@@ -153,93 +154,47 @@ export function VehicleComplete() {
               </div>
             )}
 
-            {/* VIN */}
-            <div>
-              <label className="block text-sm font-medium mb-1">VIN</label>
-              <Input
-                value={formData.vin}
-                onChange={(e) => setFormData(prev => ({ ...prev, vin: e.target.value }))}
-                maxLength={17}
-                required
-              />
-            </div>
+            {/* Manual input fields */}
+            <div className="space-y-4">
+              {/* Mileage */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Mileage</label>
+                <Input
+                  type="number"
+                  value={formData.mileage}
+                  onChange={(e) => setFormData(prev => ({ ...prev, mileage: e.target.value }))}
+                  required
+                  placeholder="Enter vehicle mileage"
+                />
+              </div>
 
-            {/* Year */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Year</label>
-              <Input
-                type="number"
-                value={formData.year}
-                onChange={(e) => setFormData(prev => ({ ...prev, year: e.target.value }))}
-                required
-              />
-            </div>
+              {/* Price */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Price</label>
+                <Input
+                  value={formData.price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                  required
+                  placeholder="Enter listing price"
+                />
+              </div>
 
-            {/* Make */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Make</label>
-              <Input
-                value={formData.make}
-                onChange={(e) => setFormData(prev => ({ ...prev, make: e.target.value }))}
-                required
-              />
-            </div>
-
-            {/* Model */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Model</label>
-              <Input
-                value={formData.model}
-                onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
-                required
-              />
-            </div>
-
-            {/* Trim */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Trim</label>
-              <Input
-                value={formData.trim}
-                onChange={(e) => setFormData(prev => ({ ...prev, trim: e.target.value }))}
-              />
-            </div>
-
-            {/* Mileage */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Mileage</label>
-              <Input
-                type="number"
-                value={formData.mileage}
-                onChange={(e) => setFormData(prev => ({ ...prev, mileage: e.target.value }))}
-                required
-              />
-            </div>
-
-            {/* Price */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Price</label>
-              <Input
-                value={formData.price}
-                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                required
-              />
-            </div>
-
-            {/* Certification Type */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Certification Type</label>
-              <Select 
-                value={formData.condition}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select certification type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Deal Machine Certified">Deal Machine Certified</SelectItem>
-                  <SelectItem value="Auction Certified">Auction Certified</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Certification Type */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Certification Type</label>
+                <Select 
+                  value={formData.condition}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select certification type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Deal Machine Certified">Deal Machine Certified</SelectItem>
+                    <SelectItem value="Auction Certified">Auction Certified</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="flex gap-2 pt-4">
