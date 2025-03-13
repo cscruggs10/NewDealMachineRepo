@@ -34,18 +34,25 @@ export async function registerRoutes(app: Express) {
 
       const vehicles = await Promise.all(rows.map(async (row, index) => {
         try {
+          if (!row[0] || !row[1] || !row[2] || !row[3] || !row[4]) {
+            console.error(`Missing required data at row ${index + 2}`);
+            return null;
+          }
+
           const vehicleData = {
             vin: row[0],
             year: parseInt(row[1]),
             make: row[2],
             model: row[3],
             mileage: parseInt(row[4]),
-            price: row[5],
+            price: row[5] || null,
             description: row[6] || null,
             condition: row[7] || null,
             images: row[8] ? row[8].split(',').map((url: string) => url.trim()) : [],
             videos: row[9] ? row[9].split(',').map((url: string) => url.trim()) : [],
           };
+
+          console.log(`Processing vehicle at row ${index + 2}:`, vehicleData);
 
           const result = insertVehicleSchema.safeParse(vehicleData);
           if (!result.success) {

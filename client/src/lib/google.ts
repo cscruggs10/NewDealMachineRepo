@@ -1,12 +1,10 @@
 import { sheets_v4 } from '@googleapis/sheets';
 import { google } from 'googleapis';
 
-const auth = new google.auth.GoogleAuth({
-  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-  key: process.env.GOOGLE_API_KEY,
+const sheets = google.sheets({ 
+  version: 'v4',
+  auth: process.env.GOOGLE_API_KEY
 });
-
-const sheets = google.sheets({ version: 'v4', auth });
 
 export async function fetchVehiclesFromSheet() {
   try {
