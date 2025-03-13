@@ -9,12 +9,12 @@ export const vehicles = pgTable("vehicles", {
   model: text("model").notNull(),
   year: integer("year").notNull(),
   mileage: integer("mileage").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }),
+  price: text("price"), 
   description: text("description"),
   condition: text("condition"),
   images: text("images").array(),
   videos: text("videos").array(),
-  status: text("status").notNull().default('pending'), // pending, active, sold
+  status: text("status").notNull().default('pending'), 
   inQueue: boolean("in_queue").notNull().default(true),
 });
 
@@ -31,7 +31,7 @@ export const offers = pgTable("offers", {
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   dealerName: text("dealer_name").notNull(),
   contactInfo: text("contact_info").notNull(),
-  status: text("status").notNull().default('pending'), // pending, accepted, rejected
+  status: text("status").notNull().default('pending'), 
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
