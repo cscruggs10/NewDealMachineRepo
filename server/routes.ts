@@ -2,15 +2,29 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema, createInitialVehicleSchema } from "@shared/schema";
-import { google } from "googleapis";
 import multer from "multer";
-import { uploadToGoogleDrive } from "./lib/drive";
 import path from "path";
 import express from 'express';
+import fs from 'fs';
 
-// Configure multer for memory storage instead of disk
+// Ensure uploads directory exists
+const uploadDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure multer for disk storage
 const upload = multer({ 
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, uploadDir);
+    },
+    filename: (_req, file, cb) => {
+      // Create a unique filename with timestamp
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+      cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
+    }
+  }),
   fileFilter: (_req, file, cb) => {
     // Accept common video formats including iOS formats
     const allowedTypes = [
@@ -33,7 +47,7 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 500 * 1024 * 1024 // Increased to 500MB to handle HD videos
+    fileSize: 500 * 1024 * 1024 // 500MB limit
   }
 });
 
@@ -118,10 +132,13 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Configure static file serving for uploads
+  app.use('/uploads', express.static(uploadDir));
+
   // Public vehicle routes
   app.get("/api/vehicles", async (_req, res) => {
     const vehicles = await storage.getVehicles();
-    res.json(vehicles); // Return all vehicles, not just active ones
+    res.json(vehicles);
   });
 
   app.get("/api/vehicles/:id", async (req, res) => {
@@ -218,15 +235,13 @@ export async function registerRoutes(app: Express) {
         size: f.size
       })));
 
-      // Upload files to Google Drive
-      const uploadPromises = (req.files as Express.Multer.File[]).map(file => 
-        uploadToGoogleDrive(file)
-      );
+      // Create URLs for the uploaded files
+      const fileUrls = req.files.map(file => {
+        return `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
+      });
 
-      const videoUrls = await Promise.all(uploadPromises);
-      console.log("Upload successful, video URLs:", videoUrls);
-
-      res.json(videoUrls);
+      console.log("Upload successful, URLs:", fileUrls);
+      res.json(fileUrls);
     } catch (error) {
       console.error("Upload error:", error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -236,8 +251,6 @@ export async function registerRoutes(app: Express) {
       });
     }
   });
-
-  app.use('/uploads', express.static('uploads'));
 
   return httpServer;
 }
