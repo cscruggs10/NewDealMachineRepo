@@ -39,13 +39,11 @@ export function VehicleComplete() {
 
   console.log("Form errors:", form.formState.errors);
 
-  const completeVehicle = useMutation({
+  const submitOffer = useMutation({
     mutationFn: async (data: any) => {
       if (!selectedVehicle) {
         throw new Error("No vehicle selected");
       }
-
-      console.log("Form data before formatting:", data);
 
       // Convert string values to numbers
       const formattedData = {
@@ -54,8 +52,7 @@ export function VehicleComplete() {
         mileage: data.mileage ? parseInt(data.mileage) : undefined,
       };
 
-      console.log("Formatted data:", formattedData);
-
+      console.log("Submitting data:", formattedData);
       return apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, {
         ...formattedData,
         status: "active",
@@ -83,7 +80,7 @@ export function VehicleComplete() {
 
   const onSubmit = async (data: any) => {
     console.log("Form submitted with data:", data);
-    completeVehicle.mutate(data);
+    submitOffer.mutate(data);
   };
 
   if (isLoading) {
@@ -122,7 +119,10 @@ export function VehicleComplete() {
                         <p className="text-sm text-muted-foreground">Video uploaded</p>
                       )}
                     </div>
-                    <Button variant="outline" onClick={() => setSelectedVehicle(vehicle)}>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setSelectedVehicle(vehicle)}
+                    >
                       Complete
                     </Button>
                   </div>
@@ -143,7 +143,7 @@ export function VehicleComplete() {
                       <Input 
                         type="number" 
                         onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : '')}
-                        {...field}
+                        {...field} 
                       />
                     </FormControl>
                     <FormMessage />
@@ -251,9 +251,9 @@ export function VehicleComplete() {
                 <Button 
                   type="submit" 
                   className="flex-1"
-                  disabled={completeVehicle.isPending}
+                  disabled={submitOffer.isPending}
                 >
-                  {completeVehicle.isPending ? (
+                  {submitOffer.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Completing...
