@@ -32,7 +32,7 @@ export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({
   condition: true,
   description: true,
 }).extend({
-  vin: z.string().min(17, "Please enter the complete 17-character VIN"),
+  vin: z.string().length(8, "Please enter the last 8 digits of the VIN"),
   videos: z.array(z.string()).optional(),
 });
 
