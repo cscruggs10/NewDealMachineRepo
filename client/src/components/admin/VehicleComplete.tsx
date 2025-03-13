@@ -17,7 +17,6 @@ export function VehicleComplete() {
   const { toast } = useToast();
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
 
-  // Get all vehicles in queue
   const { data: vehicles, isLoading } = useQuery<Vehicle[]>({
     queryKey: ["/api/vehicles"],
   });
@@ -34,8 +33,6 @@ export function VehicleComplete() {
       mileage: undefined,
       price: "",
       condition: "",
-      vin: selectedVehicle?.vin || "",
-      videos: selectedVehicle?.videos || [],
     },
   });
 
@@ -43,10 +40,11 @@ export function VehicleComplete() {
     mutationFn: (data: any) => {
       if (!selectedVehicle) throw new Error("No vehicle selected");
 
+      // Ensure year and mileage are numbers
       const formattedData = {
         ...data,
-        year: parseInt(data.year),
-        mileage: parseInt(data.mileage),
+        year: Number(data.year),
+        mileage: Number(data.mileage),
         vin: selectedVehicle.vin,
         videos: selectedVehicle.videos,
         status: "active",
@@ -72,6 +70,16 @@ export function VehicleComplete() {
       });
     },
   });
+
+  const onSubmit = (data: any) => {
+    // Convert string values to numbers before submission
+    const formData = {
+      ...data,
+      year: data.year ? Number(data.year) : undefined,
+      mileage: data.mileage ? Number(data.mileage) : undefined,
+    };
+    updateVehicle.mutate(formData);
+  };
 
   if (isLoading) {
     return <div>Loading queue...</div>;
@@ -122,7 +130,7 @@ export function VehicleComplete() {
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => updateVehicle.mutate(data))} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="year"
@@ -130,7 +138,11 @@ export function VehicleComplete() {
                   <FormItem>
                     <FormLabel>Year</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input 
+                        type="number" 
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -186,7 +198,11 @@ export function VehicleComplete() {
                   <FormItem>
                     <FormLabel>Mileage</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input 
+                        type="number" 
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
