@@ -35,21 +35,22 @@ export default function UploadPage() {
 
         if (walkaroundVideo) {
           setUploadingMedia(true);
-          // Mock upload - in production this would be a real file upload
+          const formData = new FormData();
+          formData.append('files', walkaroundVideo);
+
           const response = await fetch('/api/upload', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ filename: walkaroundVideo.name })
+            body: formData
           });
 
           if (!response.ok) {
-            throw new Error('Failed to upload video');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to upload video');
           }
 
           const urls = await response.json();
           uploadedVideos = urls;
+          console.log("Video upload successful:", uploadedVideos);
         }
 
         // Create the vehicle with the video URL
