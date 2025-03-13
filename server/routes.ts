@@ -2,11 +2,11 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema, createInitialVehicleSchema } from "@shared/schema";
-import { decodeVIN } from "../client/src/lib/vin"; // Import the VIN decoder
 import multer from "multer";
 import path from "path";
 import express from 'express';
 import fs from 'fs';
+import fetch from 'node-fetch';
 
 // Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -52,93 +52,38 @@ const upload = multer({
   }
 });
 
-// Placeholder for decodeVIN function.  Needs a real implementation.
-async function decodeVIN(vin: string): Promise<{ year: string; make: string; model: string; trim: string }> {
-  // Replace this with actual VIN decoding logic
-  console.log(`Decoding VIN: ${vin}`);
-  return { year: "2023", make: "Toyota", model: "Camry", trim: "LE" };
+// Real VIN decoder implementation using NHTSA API
+async function decodeVIN(vin: string) {
+  try {
+    console.log('Decoding VIN:', vin);
+    const response = await fetch(
+      `https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${vin}?format=json`
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to decode VIN');
+    }
+
+    const data = await response.json();
+    const results = data.Results;
+
+    const vehicleInfo = {
+      year: results.find((item: any) => item.Variable === "Model Year")?.Value || "",
+      make: results.find((item: any) => item.Variable === "Make")?.Value || "",
+      model: results.find((item: any) => item.Variable === "Model")?.Value || "",
+      trim: results.find((item: any) => item.Variable === "Trim")?.Value || "",
+    };
+
+    console.log('Decoded vehicle info:', vehicleInfo);
+    return vehicleInfo;
+  } catch (error) {
+    console.error('Error decoding VIN:', error);
+    throw new Error('Failed to decode VIN');
+  }
 }
 
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
-
-  // Google Sheets sync endpoint
-  app.post("/api/sync-vehicles", async (_req, res) => {
-    try {
-      console.log('Starting Google Sheets sync...');
-
-      // Initialize the Sheets API with API key
-      const sheets = google.sheets({ 
-        version: 'v4',
-        auth: process.env.GOOGLE_API_KEY 
-      });
-
-      console.log('Fetching sheet data...');
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId: process.env.GOOGLE_SHEET_ID,
-        range: 'RAW DATA!A2:J',
-      });
-
-      const rows = response.data.values;
-      if (!rows) {
-        console.log('No data found in sheet');
-        return res.json({ message: "No data found in sheet", vehicles: [] });
-      }
-
-      console.log(`Found ${rows.length} rows in sheet`);
-
-      const vehicles = await Promise.all(rows.map(async (row, index) => {
-        try {
-          if (!row[0] || !row[1] || !row[2] || !row[3] || !row[4]) {
-            console.error(`Missing required data at row ${index + 2}`);
-            return null;
-          }
-
-          const vehicleData = {
-            vin: row[0],
-            year: parseInt(row[1]),
-            make: row[2],
-            model: row[3],
-            mileage: parseInt(row[4]),
-            price: row[5] || null,
-            description: row[6] || null,
-            condition: row[7] || null,
-            images: row[8] ? row[8].split(',').map((url: string) => url.trim()) : [],
-            videos: row[9] ? row[9].split(',').map((url: string) => url.trim()) : [],
-          };
-
-          console.log(`Processing vehicle at row ${index + 2}:`, vehicleData);
-
-          const result = insertVehicleSchema.safeParse(vehicleData);
-          if (!result.success) {
-            console.error(`Invalid vehicle data at row ${index + 2}:`, result.error);
-            return null;
-          }
-
-          return storage.createVehicle(result.data);
-        } catch (error) {
-          console.error(`Error processing row ${index + 2}:`, error);
-          return null;
-        }
-      }));
-
-      const validVehicles = vehicles.filter(v => v !== null);
-      console.log(`Successfully processed ${validVehicles.length} valid vehicles`);
-
-      res.json({
-        message: `Successfully synced ${validVehicles.length} vehicles`,
-        vehicles: validVehicles
-      });
-    } catch (error) {
-      console.error('Error syncing vehicles:', error);
-      // Send more detailed error message
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json({ 
-        message: "Failed to sync vehicles from sheet",
-        error: errorMessage
-      });
-    }
-  });
 
   // Configure static file serving for uploads
   app.use('/uploads', express.static(uploadDir));
@@ -165,6 +110,7 @@ export async function registerRoutes(app: Express) {
     try {
       // Get the decoded VIN data
       const vehicleInfo = await decodeVIN(result.data.vin);
+      console.log('Creating vehicle with info:', vehicleInfo);
 
       // Create vehicle with both decoded info and provided data
       const vehicle = await storage.createVehicle({
