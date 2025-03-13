@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema, createInitialVehicleSchema } from "@shared/schema";
+import { decodeVIN } from "../client/src/lib/vin"; // Import the VIN decoder
 import multer from "multer";
 import path from "path";
 import express from 'express';
@@ -50,6 +51,13 @@ const upload = multer({
     fileSize: 500 * 1024 * 1024 // 500MB limit
   }
 });
+
+// Placeholder for decodeVIN function.  Needs a real implementation.
+async function decodeVIN(vin: string): Promise<{ year: string; make: string; model: string; trim: string }> {
+  // Replace this with actual VIN decoding logic
+  console.log(`Decoding VIN: ${vin}`);
+  return { year: "2023", make: "Toyota", model: "Camry", trim: "LE" };
+}
 
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
@@ -153,12 +161,27 @@ export async function registerRoutes(app: Express) {
     if (!result.success) {
       return res.status(400).json({ message: result.error.message });
     }
-    const vehicle = await storage.createVehicle({
-      ...result.data,
-      status: 'pending',
-      inQueue: true,
-    });
-    res.status(201).json(vehicle);
+
+    try {
+      // Get the decoded VIN data
+      const vehicleInfo = await decodeVIN(result.data.vin);
+
+      // Create vehicle with both decoded info and provided data
+      const vehicle = await storage.createVehicle({
+        ...result.data,
+        year: parseInt(vehicleInfo.year),
+        make: vehicleInfo.make,
+        model: vehicleInfo.model,
+        trim: vehicleInfo.trim,
+        status: 'pending',
+        inQueue: true,
+      });
+
+      res.status(201).json(vehicle);
+    } catch (error) {
+      console.error('Error creating vehicle:', error);
+      res.status(500).json({ message: "Failed to create vehicle" });
+    }
   });
 
   app.patch("/api/vehicles/:id", async (req, res) => {
