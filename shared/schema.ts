@@ -18,6 +18,25 @@ export const vehicles = pgTable("vehicles", {
   inQueue: boolean("in_queue").notNull().default(true),
 });
 
+// Initial vehicle creation schema (only VIN and videos required)
+export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({ 
+  id: true,
+  status: true,
+  inQueue: true,
+  make: true,
+  model: true,
+  trim: true,
+  year: true,
+  mileage: true,
+  price: true,
+  condition: true,
+  description: true,
+}).extend({
+  vin: z.string().length(8, "Please enter the last 8 digits of the VIN"),
+  videos: z.array(z.string()).optional(),
+});
+
+// Complete vehicle schema for admin completion
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({ 
   id: true,
   status: true,
@@ -65,6 +84,7 @@ export const insertOfferSchema = createInsertSchema(offers).omit({
 
 export type Vehicle = typeof vehicles.$inferSelect;
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
+export type InitialVehicle = z.infer<typeof createInitialVehicleSchema>;
 export type BuyCode = typeof buyCodes.$inferSelect;
 export type InsertBuyCode = z.infer<typeof insertBuyCodeSchema>;
 export type Offer = typeof offers.$inferSelect;

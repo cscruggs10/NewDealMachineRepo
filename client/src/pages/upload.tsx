@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertVehicleSchema } from "@shared/schema";
+import { createInitialVehicleSchema } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ export default function UploadPage() {
   const [walkaroundVideo, setWalkaroundVideo] = useState<File | null>(null);
 
   const form = useForm({
-    resolver: zodResolver(insertVehicleSchema),
+    resolver: zodResolver(createInitialVehicleSchema),
     defaultValues: {
       vin: "",
       videos: [],
@@ -166,11 +166,16 @@ export default function UploadPage() {
                 disabled={createVehicle.isPending || uploadingMedia}
               >
                 {(createVehicle.isPending || uploadingMedia) ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
                 ) : (
-                  <Upload className="mr-2 h-4 w-4" />
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Submit for Review
+                  </>
                 )}
-                Submit for Review
               </Button>
             </CardContent>
           </>

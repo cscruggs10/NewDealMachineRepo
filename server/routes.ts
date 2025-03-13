@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema } from "@shared/schema";
+import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema, createInitialVehicleSchema } from "@shared/schema";
 import { google } from "googleapis";
 
 export async function registerRoutes(app: Express) {
@@ -99,7 +99,7 @@ export async function registerRoutes(app: Express) {
 
   // Admin vehicle routes
   app.post("/api/vehicles", async (req, res) => {
-    const result = insertVehicleSchema.safeParse(req.body);
+    const result = createInitialVehicleSchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ message: result.error.message });
     }
