@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Vehicle } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -11,7 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export function VehicleComplete() {
   const { toast } = useToast();
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [condition, setCondition] = useState('Deal Machine Certified');
+  const [formData, setFormData] = useState({
+    year: '',
+    make: '',
+    model: '',
+    trim: '',
+    mileage: '',
+    condition: 'Deal Machine Certified'
+  });
 
   const { data: vehicles, isLoading } = useQuery<Vehicle[]>({
     queryKey: ["/api/vehicles"],
@@ -22,13 +30,16 @@ export function VehicleComplete() {
   const updateVehicle = useMutation({
     mutationFn: async (vehicleId: number) => {
       const payload = {
-        condition,
+        ...formData,
+        year: Number(formData.year),
+        mileage: Number(formData.mileage),
+        videos: selectedVehicle?.videos || [], // Preserve videos
+        vin: selectedVehicle?.vin, // Preserve VIN
         status: "active",
         inQueue: false,
-        videos: selectedVehicle?.videos || [], // Preserve videos
-        vin: selectedVehicle?.vin // Preserve VIN
       };
 
+      console.log("Submitting update:", payload);
       return apiRequest("PATCH", `/api/vehicles/${vehicleId}`, payload);
     },
     onSuccess: () => {
@@ -38,8 +49,17 @@ export function VehicleComplete() {
         description: "Vehicle listing completed",
       });
       setSelectedVehicle(null);
+      setFormData({
+        year: '',
+        make: '',
+        model: '',
+        trim: '',
+        mileage: '',
+        condition: 'Deal Machine Certified'
+      });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Update error:", error);
       toast({
         title: "Error",
         description: "Failed to complete vehicle listing",
@@ -65,6 +85,12 @@ export function VehicleComplete() {
     );
   }
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedVehicle) return;
+    updateVehicle.mutate(selectedVehicle.id);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -86,7 +112,7 @@ export function VehicleComplete() {
                           rel="noopener noreferrer"
                           className="text-primary hover:underline"
                         >
-                          View Video
+                          View Walkaround Video
                         </a>
                       )}
                     </div>
@@ -99,10 +125,10 @@ export function VehicleComplete() {
             ))}
           </div>
         ) : (
-          <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {selectedVehicle.videos?.[0] && (
-              <div>
-                <h3 className="text-sm font-medium mb-2">Walkthrough Video</h3>
+              <div className="mb-6 p-4 bg-muted rounded-lg">
+                <h3 className="text-sm font-medium mb-2">Walkaround Video</h3>
                 <a 
                   href={selectedVehicle.videos[0]}
                   target="_blank"
@@ -115,10 +141,56 @@ export function VehicleComplete() {
             )}
 
             <div>
-              <h3 className="text-sm font-medium mb-2">Certification</h3>
+              <label className="block text-sm font-medium mb-1">Year</label>
+              <Input
+                type="number"
+                value={formData.year}
+                onChange={(e) => setFormData(prev => ({ ...prev, year: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Make</label>
+              <Input
+                value={formData.make}
+                onChange={(e) => setFormData(prev => ({ ...prev, make: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Model</label>
+              <Input
+                value={formData.model}
+                onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Trim</label>
+              <Input
+                value={formData.trim}
+                onChange={(e) => setFormData(prev => ({ ...prev, trim: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Mileage</label>
+              <Input
+                type="number"
+                value={formData.mileage}
+                onChange={(e) => setFormData(prev => ({ ...prev, mileage: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Certification</label>
               <Select 
-                value={condition}
-                onValueChange={setCondition}
+                value={formData.condition}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -131,10 +203,7 @@ export function VehicleComplete() {
             </div>
 
             <div className="flex gap-2 pt-4">
-              <Button 
-                onClick={() => updateVehicle.mutate(selectedVehicle.id)}
-                className="flex-1"
-              >
+              <Button type="submit" className="flex-1">
                 Complete Listing
               </Button>
               <Button 
@@ -144,7 +213,7 @@ export function VehicleComplete() {
                 Cancel
               </Button>
             </div>
-          </div>
+          </form>
         )}
       </CardContent>
     </Card>
