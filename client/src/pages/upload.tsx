@@ -30,39 +30,42 @@ export default function UploadPage() {
 
   const createVehicle = useMutation({
     mutationFn: async (data: any) => {
-      let uploadedVideos: string[] = [];
+      try {
+        let uploadedVideos: string[] = [];
 
-      if (walkaroundVideo) {
-        setUploadingMedia(true);
-        try {
-          // For now we'll use the mock upload endpoint
+        if (walkaroundVideo) {
+          setUploadingMedia(true);
+          // Mock upload - in production this would be a real file upload
           const response = await fetch('/api/upload', {
             method: 'POST',
-            body: JSON.stringify({ filename: walkaroundVideo.name }),
             headers: {
               'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ filename: walkaroundVideo.name })
           });
 
           if (!response.ok) {
             throw new Error('Failed to upload video');
           }
 
-          const videoData = await response.json();
-          uploadedVideos = [videoData]; // Assuming the API returns an array
-        } catch (error) {
-          console.error('Upload error:', error);
-          throw new Error("Failed to upload video");
-        } finally {
-          setUploadingMedia(false);
+          const urls = await response.json();
+          uploadedVideos = urls;
         }
-      }
 
-      return apiRequest("POST", "/api/vehicles", {
-        ...data,
-        videos: uploadedVideos,
-        inQueue: true,
-      });
+        // Create the vehicle with the video URL
+        const vehicleData = {
+          ...data,
+          videos: uploadedVideos,
+        };
+
+        console.log('Creating vehicle with data:', vehicleData);
+        return apiRequest("POST", "/api/vehicles", vehicleData);
+      } catch (error) {
+        console.error('Upload/creation error:', error);
+        throw error;
+      } finally {
+        setUploadingMedia(false);
+      }
     },
     onSuccess: () => {
       toast({
@@ -73,7 +76,7 @@ export default function UploadPage() {
       setCurrentStep('complete');
       setWalkaroundVideo(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to add vehicle",
