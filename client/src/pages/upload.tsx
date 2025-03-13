@@ -11,6 +11,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { Loader2, Upload, VideoIcon } from "lucide-react";
+import { decodeVIN, vinSchema } from "@/lib/vin";
 
 type UploadStep = 'vin' | 'video' | 'complete';
 
@@ -19,6 +20,7 @@ export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState<UploadStep>('vin');
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [walkaroundVideo, setWalkaroundVideo] = useState<File | null>(null);
+  const [isDecodingVin, setIsDecodingVin] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(createInitialVehicleSchema),
@@ -27,6 +29,35 @@ export default function UploadPage() {
       videos: [],
     },
   });
+
+  const handleVinChange = async (vin: string) => {
+    if (vin.length === 17) {
+      try {
+        setIsDecodingVin(true);
+        const result = await vinSchema.parseAsync(vin);
+        const vehicleInfo = await decodeVIN(result);
+
+        // Update form with decoded vehicle information
+        form.setValue("year", vehicleInfo.year);
+        form.setValue("make", vehicleInfo.make);
+        form.setValue("model", vehicleInfo.model);
+        form.setValue("trim", vehicleInfo.trim);
+
+        toast({
+          title: "VIN Decoded",
+          description: "Vehicle information has been automatically filled",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to decode VIN",
+          variant: "destructive",
+        });
+      } finally {
+        setIsDecodingVin(false);
+      }
+    }
+  };
 
   const createVehicle = useMutation({
     mutationFn: async (data: any) => {
@@ -90,10 +121,10 @@ export default function UploadPage() {
     switch (currentStep) {
       case 'vin':
         const vin = form.getValues('vin');
-        if (vin.length !== 8) {
+        if (vin.length !== 17) {
           toast({
             title: "Error",
-            description: "Please enter the last 8 digits of the VIN",
+            description: "Please enter a 17-digit VIN",
             variant: "destructive",
           });
           return;
@@ -130,11 +161,26 @@ export default function UploadPage() {
                     name="vin"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Last 8 Digits of VIN</FormLabel>
+                        <FormLabel>Vehicle Identification Number (VIN)</FormLabel>
                         <FormControl>
-                          <Input maxLength={8} placeholder="Enter last 8 digits" {...field} />
+                          <Input 
+                            placeholder="Enter full 17-character VIN"
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              handleVinChange(e.target.value);
+                            }}
+                            maxLength={17}
+                            disabled={isDecodingVin}
+                          />
                         </FormControl>
                         <FormMessage />
+                        {isDecodingVin && (
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Decoding VIN...
+                          </div>
+                        )}
                       </FormItem>
                     )}
                   />
