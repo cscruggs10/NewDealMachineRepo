@@ -10,12 +10,15 @@ export async function registerRoutes(app: Express) {
   // Google Sheets sync endpoint
   app.post("/api/sync-vehicles", async (_req, res) => {
     try {
-      const auth = new google.auth.GoogleAuth({
-        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-        key: process.env.GOOGLE_API_KEY,
+      console.log('Starting Google Sheets sync...');
+
+      // Initialize the Sheets API with API key
+      const sheets = google.sheets({ 
+        version: 'v4',
+        auth: process.env.GOOGLE_API_KEY 
       });
 
-      const sheets = google.sheets({ version: 'v4', auth });
+      console.log('Fetching sheet data...');
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: process.env.GOOGLE_SHEET_ID,
         range: 'RAW DATA!A2:J',
@@ -23,40 +26,55 @@ export async function registerRoutes(app: Express) {
 
       const rows = response.data.values;
       if (!rows) {
+        console.log('No data found in sheet');
         return res.json({ message: "No data found in sheet", vehicles: [] });
       }
 
-      const vehicles = await Promise.all(rows.map(async row => {
-        const vehicleData = {
-          vin: row[0],
-          year: parseInt(row[1]),
-          make: row[2],
-          model: row[3],
-          mileage: parseInt(row[4]),
-          price: row[5],
-          description: row[6] || null,
-          condition: row[7] || null,
-          images: row[8] ? row[8].split(',').map((url: string) => url.trim()) : [],
-          videos: row[9] ? row[9].split(',').map((url: string) => url.trim()) : [],
-        };
+      console.log(`Found ${rows.length} rows in sheet`);
 
-        const result = insertVehicleSchema.safeParse(vehicleData);
-        if (!result.success) {
-          console.error(`Invalid vehicle data:`, result.error);
+      const vehicles = await Promise.all(rows.map(async (row, index) => {
+        try {
+          const vehicleData = {
+            vin: row[0],
+            year: parseInt(row[1]),
+            make: row[2],
+            model: row[3],
+            mileage: parseInt(row[4]),
+            price: row[5],
+            description: row[6] || null,
+            condition: row[7] || null,
+            images: row[8] ? row[8].split(',').map((url: string) => url.trim()) : [],
+            videos: row[9] ? row[9].split(',').map((url: string) => url.trim()) : [],
+          };
+
+          const result = insertVehicleSchema.safeParse(vehicleData);
+          if (!result.success) {
+            console.error(`Invalid vehicle data at row ${index + 2}:`, result.error);
+            return null;
+          }
+
+          return storage.createVehicle(result.data);
+        } catch (error) {
+          console.error(`Error processing row ${index + 2}:`, error);
           return null;
         }
-
-        return storage.createVehicle(result.data);
       }));
 
       const validVehicles = vehicles.filter(v => v !== null);
+      console.log(`Successfully processed ${validVehicles.length} valid vehicles`);
+
       res.json({
         message: `Successfully synced ${validVehicles.length} vehicles`,
         vehicles: validVehicles
       });
     } catch (error) {
       console.error('Error syncing vehicles:', error);
-      res.status(500).json({ message: "Failed to sync vehicles from sheet" });
+      // Send more detailed error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ 
+        message: "Failed to sync vehicles from sheet",
+        error: errorMessage
+      });
     }
   });
 
