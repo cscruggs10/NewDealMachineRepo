@@ -18,7 +18,7 @@ export async function registerRoutes(app: Express) {
       const sheets = google.sheets({ version: 'v4', auth });
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: process.env.GOOGLE_SHEET_ID,
-        range: 'Vehicles!A2:J',
+        range: 'RAW DATA!A2:J',
       });
 
       const rows = response.data.values;
@@ -50,7 +50,7 @@ export async function registerRoutes(app: Express) {
       }));
 
       const validVehicles = vehicles.filter(v => v !== null);
-      res.json({ 
+      res.json({
         message: `Successfully synced ${validVehicles.length} vehicles`,
         vehicles: validVehicles
       });

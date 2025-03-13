@@ -12,7 +12,7 @@ export async function fetchVehiclesFromSheet() {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: 'Vehicles!A2:J',
+      range: 'RAW DATA!A2:J',
     });
 
     const rows = response.data.values;
