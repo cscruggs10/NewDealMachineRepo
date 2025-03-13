@@ -19,54 +19,71 @@ export function VinScanner({ onScan }: VinScannerProps) {
     if (open) {
       console.log("Starting camera initialization...");
       setIsInitializing(true);
-      const reader = new BrowserMultiFormatReader();
-      setCodeReader(reader);
 
-      const videoElement = document.getElementById('video-preview') as HTMLVideoElement;
-      if (videoElement) {
-        reader
-          .decodeFromConstraints(
-            {
-              video: {
-                facingMode: "environment",
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 }
-              }
-            },
-            videoElement,
-            (result, error) => {
-              if (result) {
-                const scannedText = result.getText();
-                // Most VINs are 17 characters long
-                if (scannedText && scannedText.length === 17) {
-                  onScan(scannedText);
-                  setOpen(false);
-                  toast({
-                    title: "VIN Scanned",
-                    description: "VIN has been successfully captured",
-                  });
+      // First check if we have camera permissions
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(stream => {
+          console.log("Camera permission granted, initializing scanner...");
+
+          const reader = new BrowserMultiFormatReader();
+          setCodeReader(reader);
+
+          const videoElement = document.getElementById('video-preview') as HTMLVideoElement;
+          if (videoElement) {
+            reader
+              .decodeFromConstraints(
+                {
+                  video: {
+                    facingMode: "environment",
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 480, ideal: 720, max: 1080 }
+                  }
+                },
+                videoElement,
+                (result, error) => {
+                  if (result) {
+                    const scannedText = result.getText();
+                    // Most VINs are 17 characters long
+                    if (scannedText && scannedText.length === 17) {
+                      onScan(scannedText);
+                      setOpen(false);
+                      toast({
+                        title: "VIN Scanned",
+                        description: "VIN has been successfully captured",
+                      });
+                    }
+                  }
+                  if (error) {
+                    console.debug("No VIN found in current frame");
+                  }
                 }
-              }
-              if (error) {
-                console.debug("No VIN found in current frame");
-              }
-            }
-          )
-          .then(() => {
-            setIsInitializing(false);
-            console.log("Camera initialized successfully");
-          })
-          .catch(err => {
-            console.error("Error accessing camera:", err);
-            toast({
-              title: "Camera Error",
-              description: "Please make sure camera permissions are granted",
-              variant: "destructive",
-            });
-            setOpen(false);
-            setIsInitializing(false);
+              )
+              .then(() => {
+                setIsInitializing(false);
+                console.log("Camera initialized successfully");
+              })
+              .catch(err => {
+                console.error("Error initializing scanner:", err);
+                toast({
+                  title: "Scanner Error",
+                  description: "Failed to initialize the scanner. Please try again.",
+                  variant: "destructive",
+                });
+                setOpen(false);
+                setIsInitializing(false);
+              });
+          }
+        })
+        .catch(error => {
+          console.error("Camera permission error:", error);
+          toast({
+            title: "Camera Access Denied",
+            description: "Please allow camera access to scan VIN codes",
+            variant: "destructive",
           });
-      }
+          setOpen(false);
+          setIsInitializing(false);
+        });
 
       return () => {
         if (codeReader) {
