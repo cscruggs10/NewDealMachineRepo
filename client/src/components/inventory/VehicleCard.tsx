@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { OfferForm } from "../forms/OfferForm";
 import { formatCurrency } from "@/lib/utils";
+import { VideoIcon } from "lucide-react";
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -49,12 +50,30 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-4">
-        {vehicle.images?.[0] && (
-          <img
-            src={vehicle.images[0]}
-            alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
-            className="w-full h-48 object-cover rounded-md"
-          />
+        {vehicle.videos?.[0] && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full">
+                <VideoIcon className="mr-2 h-4 w-4" />
+                Watch Video Walkthrough
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[800px]">
+              <DialogHeader>
+                <DialogTitle>Vehicle Video Walkthrough</DialogTitle>
+              </DialogHeader>
+              <div className="aspect-video">
+                <video
+                  src={vehicle.videos[0]}
+                  controls
+                  className="w-full h-full rounded-lg"
+                  preload="metadata"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
 
         <div className="space-y-2">
@@ -64,13 +83,21 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
           <p className="text-muted-foreground">
             Mileage: {vehicle.mileage ? vehicle.mileage.toLocaleString() : 'N/A'} miles
           </p>
+          {vehicle.trim && (
+            <p className="text-muted-foreground">Trim: {vehicle.trim}</p>
+          )}
           <p className="text-sm line-clamp-2">{vehicle.description}</p>
+          {vehicle.condition && (
+            <p className="text-sm font-medium text-primary">
+              {vehicle.condition}
+            </p>
+          )}
         </div>
 
-        <div className="mt-auto space-x-2 pt-4">
+        <div className="mt-auto space-y-2 pt-4">
           <Button 
             variant="default" 
-            className="w-full mb-2"
+            className="w-full"
             onClick={handleBuyNow}
           >
             Buy Now
