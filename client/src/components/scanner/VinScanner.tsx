@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { BrowserMultiFormatReader } from "@zxing/library";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Camera, Loader2 } from "lucide-react";
@@ -11,103 +10,64 @@ interface VinScannerProps {
 
 export function VinScanner({ onScan }: VinScannerProps) {
   const [open, setOpen] = useState(false);
-  const [codeReader, setCodeReader] = useState<BrowserMultiFormatReader | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (open) {
-      console.log("Starting camera initialization...");
-      setIsInitializing(true);
+    if (!open) return;
 
-      // First check if we have camera permissions
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then(stream => {
-          console.log("Camera permission granted, initializing scanner...");
+    setIsInitializing(true);
+    console.log("Requesting camera access...");
 
-          const reader = new BrowserMultiFormatReader();
-          setCodeReader(reader);
+    // Simple camera access first
+    navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { exact: "environment" }, // Prefer back camera
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    })
+    .then(stream => {
+      console.log("Camera access granted");
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setIsInitializing(false);
+      }
+    })
+    .catch(error => {
+      console.error("Camera access error:", error);
+      toast({
+        title: "Camera Access Error",
+        description: "Please allow camera access and try again",
+        variant: "destructive",
+      });
+      setOpen(false);
+      setIsInitializing(false);
+    });
 
-          const videoElement = document.getElementById('video-preview') as HTMLVideoElement;
-          if (videoElement) {
-            reader
-              .decodeFromConstraints(
-                {
-                  video: {
-                    facingMode: "environment",
-                    width: { min: 640, ideal: 1280, max: 1920 },
-                    height: { min: 480, ideal: 720, max: 1080 }
-                  }
-                },
-                videoElement,
-                (result, error) => {
-                  if (result) {
-                    const scannedText = result.getText();
-                    // Most VINs are 17 characters long
-                    if (scannedText && scannedText.length === 17) {
-                      onScan(scannedText);
-                      setOpen(false);
-                      toast({
-                        title: "VIN Scanned",
-                        description: "VIN has been successfully captured",
-                      });
-                    }
-                  }
-                  if (error) {
-                    console.debug("No VIN found in current frame");
-                  }
-                }
-              )
-              .then(() => {
-                setIsInitializing(false);
-                console.log("Camera initialized successfully");
-              })
-              .catch(err => {
-                console.error("Error initializing scanner:", err);
-                toast({
-                  title: "Scanner Error",
-                  description: "Failed to initialize the scanner. Please try again.",
-                  variant: "destructive",
-                });
-                setOpen(false);
-                setIsInitializing(false);
-              });
-          }
-        })
-        .catch(error => {
-          console.error("Camera permission error:", error);
-          toast({
-            title: "Camera Access Denied",
-            description: "Please allow camera access to scan VIN codes",
-            variant: "destructive",
-          });
-          setOpen(false);
-          setIsInitializing(false);
-        });
-
-      return () => {
-        if (codeReader) {
-          console.log("Cleaning up camera...");
-          codeReader.reset();
-          setCodeReader(null);
-        }
-      };
-    }
-  }, [open, onScan, toast]);
+    // Cleanup function
+    return () => {
+      if (videoRef.current?.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+        tracks.forEach(track => track.stop());
+      }
+    };
+  }, [open, toast]);
 
   return (
     <Dialog 
       open={open} 
       onOpenChange={(newOpen) => {
-        if (!newOpen && codeReader) {
-          codeReader.reset();
-          setCodeReader(null);
+        if (!newOpen && videoRef.current?.srcObject) {
+          const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+          tracks.forEach(track => track.stop());
         }
         setOpen(newOpen);
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline" type="button" className="w-full">
+        <Button variant="outline" type="button">
           <Camera className="mr-2 h-4 w-4" />
           Scan VIN
         </Button>
@@ -124,7 +84,9 @@ export function VinScanner({ onScan }: VinScannerProps) {
             </div>
           ) : (
             <video
-              id="video-preview"
+              ref={videoRef}
+              autoPlay
+              playsInline
               className="w-full h-64 object-cover rounded-md bg-muted"
             />
           )}
