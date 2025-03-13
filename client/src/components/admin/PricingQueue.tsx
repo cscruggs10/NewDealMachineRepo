@@ -19,7 +19,7 @@ export function PricingQueue() {
   const queuedVehicles = vehicles?.filter((v) => v.inQueue) || [];
 
   const updateVehicle = useMutation({
-    mutationFn: async ({ id, price }: { id: number; price: number }) => {
+    mutationFn: async ({ id, price }: { id: number; price: string }) => {
       return apiRequest("PATCH", `/api/vehicles/${id}`, {
         price,
         inQueue: false,
@@ -43,8 +43,8 @@ export function PricingQueue() {
   });
 
   const handleUpdatePrice = (id: number) => {
-    const price = parseFloat(prices[id]);
-    if (isNaN(price)) {
+    const price = prices[id];
+    if (!price || price.trim() === '') {
       toast({
         title: "Error",
         description: "Please enter a valid price",
@@ -79,7 +79,7 @@ export function PricingQueue() {
           </CardHeader>
           <CardContent className="flex items-center gap-4">
             <Input
-              type="number"
+              type="text"
               placeholder="Enter price"
               value={prices[vehicle.id] || ""}
               onChange={(e) =>
