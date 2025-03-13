@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { BrowserMultiFormatReader } from "@zxing/library";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Camera } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface VinScannerProps {
@@ -12,10 +12,13 @@ interface VinScannerProps {
 export function VinScanner({ onScan }: VinScannerProps) {
   const [open, setOpen] = useState(false);
   const [codeReader, setCodeReader] = useState<BrowserMultiFormatReader | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
+      console.log("Starting camera initialization...");
+      setIsInitializing(true);
       const reader = new BrowserMultiFormatReader();
       setCodeReader(reader);
 
@@ -49,6 +52,10 @@ export function VinScanner({ onScan }: VinScannerProps) {
               }
             }
           )
+          .then(() => {
+            setIsInitializing(false);
+            console.log("Camera initialized successfully");
+          })
           .catch(err => {
             console.error("Error accessing camera:", err);
             toast({
@@ -57,6 +64,7 @@ export function VinScanner({ onScan }: VinScannerProps) {
               variant: "destructive",
             });
             setOpen(false);
+            setIsInitializing(false);
           });
       }
 
@@ -92,10 +100,17 @@ export function VinScanner({ onScan }: VinScannerProps) {
           <DialogTitle>Scan Vehicle VIN</DialogTitle>
         </DialogHeader>
         <div className="mt-4">
-          <video
-            id="video-preview"
-            className="w-full h-64 object-cover rounded-md bg-muted"
-          />
+          {isInitializing ? (
+            <div className="w-full h-64 bg-muted rounded-md flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Initializing camera...</span>
+            </div>
+          ) : (
+            <video
+              id="video-preview"
+              className="w-full h-64 object-cover rounded-md bg-muted"
+            />
+          )}
           <p className="text-sm text-muted-foreground mt-2">
             Point your camera at the vehicle's VIN barcode
           </p>
