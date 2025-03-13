@@ -5,10 +5,11 @@ import { z } from "zod";
 export const vehicles = pgTable("vehicles", {
   id: serial("id").primaryKey(),
   vin: text("vin").notNull(),
-  make: text("make").notNull(),
-  model: text("model").notNull(),
-  year: integer("year").notNull(),
-  mileage: integer("mileage").notNull(),
+  make: text("make"),
+  model: text("model"),
+  trim: text("trim"),
+  year: integer("year"),
+  mileage: integer("mileage"),
   price: text("price"), 
   description: text("description"),
   condition: text("condition"),
@@ -16,6 +17,24 @@ export const vehicles = pgTable("vehicles", {
   videos: text("videos").array(),
   status: text("status").notNull().default('pending'), 
   inQueue: boolean("in_queue").notNull().default(true),
+});
+
+export const insertVehicleSchema = createInsertSchema(vehicles).omit({ 
+  id: true,
+  status: true,
+  inQueue: true 
+}).extend({
+  vin: z.string().length(8, "Please enter the last 8 digits of the VIN"),
+  make: z.string().optional(),
+  model: z.string().optional(),
+  trim: z.string().optional(),
+  year: z.number().optional(),
+  mileage: z.number().optional(),
+  price: z.string().optional(),
+  condition: z.string().optional(),
+  description: z.string().optional(),
+  images: z.array(z.string()).optional(),
+  videos: z.array(z.string()).optional(),
 });
 
 export const buyCodes = pgTable("buy_codes", {
@@ -33,12 +52,6 @@ export const offers = pgTable("offers", {
   contactInfo: text("contact_info").notNull(),
   status: text("status").notNull().default('pending'), 
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const insertVehicleSchema = createInsertSchema(vehicles).omit({ 
-  id: true,
-  status: true,
-  inQueue: true 
 });
 
 export const insertBuyCodeSchema = createInsertSchema(buyCodes).omit({ 
