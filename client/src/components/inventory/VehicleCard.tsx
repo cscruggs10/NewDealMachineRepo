@@ -56,13 +56,13 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
             className="w-full h-48 object-cover rounded-md"
           />
         )}
-        
+
         <div className="space-y-2">
           <p className="text-2xl font-bold text-primary">
             {formatCurrency(Number(vehicle.price))}
           </p>
           <p className="text-muted-foreground">
-            Mileage: {vehicle.mileage.toLocaleString()} miles
+            Mileage: {vehicle.mileage ? vehicle.mileage.toLocaleString() : 'N/A'} miles
           </p>
           <p className="text-sm line-clamp-2">{vehicle.description}</p>
         </div>
@@ -75,7 +75,7 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
           >
             Buy Now
           </Button>
-          
+
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full">
