@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VideoIcon } from "lucide-react";
 
 export function VehicleComplete() {
   const { toast } = useToast();
@@ -37,6 +38,7 @@ export function VehicleComplete() {
         inQueue: false,
       };
 
+      console.log("Submitting with payload:", payload);
       return apiRequest("PATCH", `/api/vehicles/${vehicleId}`, payload);
     },
     onSuccess: () => {
@@ -99,17 +101,20 @@ export function VehicleComplete() {
               <Card key={vehicle.id} className="hover:bg-accent/50">
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center">
-                    <div>
+                    <div className="space-y-2">
                       <p className="font-medium">VIN: {vehicle.vin}</p>
-                      {vehicle.videos?.length > 0 && (
-                        <a 
-                          href={vehicle.videos[0]} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline"
-                        >
-                          View Walkthrough Video
-                        </a>
+                      {vehicle.videos?.[0] && (
+                        <div className="flex items-center gap-2">
+                          <VideoIcon className="h-4 w-4" />
+                          <a 
+                            href={vehicle.videos[0]} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline"
+                          >
+                            View Walkthrough Video
+                          </a>
+                        </div>
                       )}
                     </div>
                     <Button onClick={() => setSelectedVehicle(vehicle)}>
@@ -122,17 +127,20 @@ export function VehicleComplete() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {selectedVehicle.videos?.length > 0 && (
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-1">Walkthrough Video</label>
-                <a 
-                  href={selectedVehicle.videos[0]} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  View Video
-                </a>
+            {selectedVehicle.videos?.[0] && (
+              <div className="mb-6 p-4 bg-muted rounded-lg">
+                <label className="block text-sm font-medium mb-2">Walkthrough Video</label>
+                <div className="flex items-center gap-2">
+                  <VideoIcon className="h-4 w-4" />
+                  <a 
+                    href={selectedVehicle.videos[0]} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    View Video
+                  </a>
+                </div>
               </div>
             )}
 
@@ -189,8 +197,8 @@ export function VehicleComplete() {
                 value={formData.condition}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
               >
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select certification type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Deal Machine Certified">Deal Machine Certified</SelectItem>
@@ -199,7 +207,7 @@ export function VehicleComplete() {
               </Select>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-4">
               <Button type="submit" className="flex-1">
                 Complete Listing
               </Button>
