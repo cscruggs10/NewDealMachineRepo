@@ -25,33 +25,31 @@ export function VehicleComplete() {
 
   const form = useForm({
     resolver: zodResolver(insertVehicleSchema),
-    defaultValues: {
-      year: undefined,
-      make: "",
-      model: "",
-      trim: "",
-      mileage: undefined,
-      price: "",
-      condition: "",
-    },
   });
 
   const updateVehicle = useMutation({
-    mutationFn: (data: any) => {
-      if (!selectedVehicle) throw new Error("No vehicle selected");
+    mutationFn: async (formData: any) => {
+      console.log("Starting mutation with form data:", formData);
 
-      // Ensure year and mileage are numbers
-      const formattedData = {
-        ...data,
-        year: Number(data.year),
-        mileage: Number(data.mileage),
+      if (!selectedVehicle) {
+        throw new Error("No vehicle selected");
+      }
+
+      const payload = {
+        ...formData,
+        year: Number(formData.year),
+        mileage: Number(formData.mileage),
         vin: selectedVehicle.vin,
         videos: selectedVehicle.videos,
         status: "active",
         inQueue: false,
       };
 
-      return apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, formattedData);
+      console.log("Sending payload:", payload);
+
+      const response = await apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, payload);
+      console.log("Received response:", response);
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
@@ -63,6 +61,7 @@ export function VehicleComplete() {
       form.reset();
     },
     onError: (error: any) => {
+      console.error("Mutation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to complete vehicle listing",
@@ -70,16 +69,6 @@ export function VehicleComplete() {
       });
     },
   });
-
-  const onSubmit = (data: any) => {
-    // Convert string values to numbers before submission
-    const formData = {
-      ...data,
-      year: data.year ? Number(data.year) : undefined,
-      mileage: data.mileage ? Number(data.mileage) : undefined,
-    };
-    updateVehicle.mutate(formData);
-  };
 
   if (isLoading) {
     return <div>Loading queue...</div>;
@@ -97,6 +86,11 @@ export function VehicleComplete() {
       </Card>
     );
   }
+
+  const handleSubmit = (data: any) => {
+    console.log("Form submitted with data:", data);
+    updateVehicle.mutate(data);
+  };
 
   return (
     <Card>
@@ -118,8 +112,8 @@ export function VehicleComplete() {
                       )}
                     </div>
                     <Button 
-                      variant="outline" 
                       onClick={() => setSelectedVehicle(vehicle)}
+                      variant="outline"
                     >
                       Complete
                     </Button>
@@ -130,7 +124,7 @@ export function VehicleComplete() {
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="year"
@@ -141,7 +135,7 @@ export function VehicleComplete() {
                       <Input 
                         type="number" 
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : '')}
                       />
                     </FormControl>
                     <FormMessage />
@@ -201,7 +195,7 @@ export function VehicleComplete() {
                       <Input 
                         type="number" 
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : '')}
                       />
                     </FormControl>
                     <FormMessage />
