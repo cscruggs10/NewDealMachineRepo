@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Camera, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { BrowserMultiFormatReader, Result, BarcodeFormat } from '@zxing/library';
+import { BrowserMultiFormatReader } from '@zxing/library';
 
 interface VinScannerProps {
   onScan: (vin: string) => void;
@@ -22,7 +22,6 @@ export function VinScanner({ onScan }: VinScannerProps) {
     console.log("Initializing barcode scanner...");
 
     const codeReader = new BrowserMultiFormatReader();
-    codeReader.setHints(new Map([[BarcodeFormat.CODE_39, {}]])); // VIN barcodes typically use Code 39
 
     // Request camera access
     navigator.mediaDevices.getUserMedia({
@@ -43,7 +42,7 @@ export function VinScanner({ onScan }: VinScannerProps) {
           if (!videoRef.current) return;
 
           codeReader.decodeFromVideoElement(videoRef.current)
-            .then((result: Result) => {
+            .then((result) => {
               const scannedVin = result.getText();
               console.log("Scanned VIN:", scannedVin);
 
