@@ -8,6 +8,9 @@ export function VehicleGrid() {
     queryKey: ["/api/vehicles"] 
   });
 
+  // Only show active vehicles that are not in queue
+  const activeVehicles = vehicles?.filter(v => !v.inQueue && v.status === 'active') || [];
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
@@ -18,7 +21,7 @@ export function VehicleGrid() {
     );
   }
 
-  if (!vehicles?.length) {
+  if (!activeVehicles.length) {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-semibold">No vehicles available</h2>
@@ -29,7 +32,7 @@ export function VehicleGrid() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-      {vehicles.map((vehicle) => (
+      {activeVehicles.map((vehicle) => (
         <VehicleCard key={vehicle.id} vehicle={vehicle} />
       ))}
     </div>

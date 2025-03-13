@@ -7,15 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function VehicleComplete() {
   const { toast } = useToast();
-  const [searchVin, setSearchVin] = useState("");
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+
+  // Get all vehicles in queue
+  const { data: vehicles, isLoading } = useQuery<Vehicle[]>({
+    queryKey: ["/api/vehicles"],
+  });
+
+  const queuedVehicles = vehicles?.filter(v => v.inQueue) || [];
 
   const form = useForm({
     resolver: zodResolver(insertVehicleSchema),
@@ -30,40 +36,10 @@ export function VehicleComplete() {
     },
   });
 
-  const searchVehicle = async () => {
-    if (searchVin.length !== 8) {
-      toast({
-        title: "Error",
-        description: "Please enter the last 8 digits of the VIN",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const response = await apiRequest("GET", `/api/vehicles/vin/${searchVin}`, undefined);
-      const data = await response.json();
-      setVehicle(data);
-      if (!data) {
-        toast({
-          title: "Not Found",
-          description: "No vehicle found with this VIN",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to find vehicle",
-        variant: "destructive",
-      });
-    }
-  };
-
   const completeVehicle = useMutation({
     mutationFn: async (data: any) => {
-      if (!vehicle) return;
-      return apiRequest("PATCH", `/api/vehicles/${vehicle.id}`, {
+      if (!selectedVehicle) return;
+      return apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, {
         ...data,
         status: "active",
         inQueue: false,
@@ -75,8 +51,7 @@ export function VehicleComplete() {
         title: "Success",
         description: "Vehicle listing completed",
       });
-      setVehicle(null);
-      setSearchVin("");
+      setSelectedVehicle(null);
       form.reset();
     },
     onError: () => {
@@ -88,21 +63,49 @@ export function VehicleComplete() {
     },
   });
 
+  if (isLoading) {
+    return <div>Loading queue...</div>;
+  }
+
+  if (queuedVehicles.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Vehicle Queue Empty</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">No vehicles waiting to be processed</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Complete Vehicle Listing</CardTitle>
       </CardHeader>
       <CardContent>
-        {!vehicle ? (
-          <div className="flex gap-4">
-            <Input
-              placeholder="Enter last 8 digits of VIN"
-              maxLength={8}
-              value={searchVin}
-              onChange={(e) => setSearchVin(e.target.value)}
-            />
-            <Button onClick={searchVehicle}>Search</Button>
+        {!selectedVehicle ? (
+          <div className="space-y-4">
+            <h3 className="font-medium mb-2">Vehicles in Queue</h3>
+            {queuedVehicles.map((vehicle) => (
+              <Card key={vehicle.id} className="hover:bg-accent/50 cursor-pointer" onClick={() => setSelectedVehicle(vehicle)}>
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">VIN: {vehicle.vin}</p>
+                      {vehicle.videos?.length > 0 && (
+                        <p className="text-sm text-muted-foreground">Video uploaded</p>
+                      )}
+                    </div>
+                    <Button variant="outline" onClick={() => setSelectedVehicle(vehicle)}>
+                      Complete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : (
           <Form {...form}>
@@ -213,13 +216,22 @@ export function VehicleComplete() {
                 )}
               />
 
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={completeVehicle.isPending}
-              >
-                Complete Listing
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  type="submit" 
+                  className="flex-1"
+                  disabled={completeVehicle.isPending}
+                >
+                  Complete Listing
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => setSelectedVehicle(null)}
+                >
+                  Cancel
+                </Button>
+              </div>
             </form>
           </Form>
         )}
