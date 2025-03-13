@@ -25,20 +25,32 @@ export function VehicleComplete() {
 
   const form = useForm({
     resolver: zodResolver(insertVehicleSchema),
+    defaultValues: {
+      year: 0,
+      make: "",
+      model: "",
+      trim: "",
+      mileage: 0,
+      price: "",
+      condition: "",
+      vin: "",
+      videos: [],
+    }
   });
 
   const updateVehicle = useMutation({
-    mutationFn: async (formData: any) => {
-      console.log("Starting mutation with form data:", formData);
-
+    mutationFn: async (data: any) => {
       if (!selectedVehicle) {
         throw new Error("No vehicle selected");
       }
 
+      console.log("Form data:", data);
+
+      // Make sure to convert string numbers to actual numbers
       const payload = {
-        ...formData,
-        year: Number(formData.year),
-        mileage: Number(formData.mileage),
+        ...data,
+        year: Number(data.year),
+        mileage: Number(data.mileage),
         vin: selectedVehicle.vin,
         videos: selectedVehicle.videos,
         status: "active",
@@ -46,10 +58,7 @@ export function VehicleComplete() {
       };
 
       console.log("Sending payload:", payload);
-
-      const response = await apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, payload);
-      console.log("Received response:", response);
-      return response;
+      return apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
@@ -61,7 +70,7 @@ export function VehicleComplete() {
       form.reset();
     },
     onError: (error: any) => {
-      console.error("Mutation error:", error);
+      console.error("Update error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to complete vehicle listing",
@@ -86,11 +95,6 @@ export function VehicleComplete() {
       </Card>
     );
   }
-
-  const handleSubmit = (data: any) => {
-    console.log("Form submitted with data:", data);
-    updateVehicle.mutate(data);
-  };
 
   return (
     <Card>
@@ -124,7 +128,10 @@ export function VehicleComplete() {
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <form 
+              onSubmit={form.handleSubmit((data) => updateVehicle.mutate(data))} 
+              className="space-y-4"
+            >
               <FormField
                 control={form.control}
                 name="year"
@@ -134,8 +141,8 @@ export function VehicleComplete() {
                     <FormControl>
                       <Input 
                         type="number" 
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : '')}
+                        {...field} 
+                        onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
@@ -195,8 +202,22 @@ export function VehicleComplete() {
                       <Input 
                         type="number" 
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : '')}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -220,20 +241,6 @@ export function VehicleComplete() {
                         <SelectItem value="Auction Certified">Auction Certified</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
