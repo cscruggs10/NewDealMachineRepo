@@ -11,55 +11,85 @@ interface VinScannerProps {
 
 export function VinScanner({ onScan }: VinScannerProps) {
   const [open, setOpen] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const webcamRef = useRef<Webcam>(null);
   const { toast } = useToast();
 
   const handleCapture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
-      // For now, since we don't have OCR, let's just let users manually verify the VIN
-      // by showing them the captured image
+      setCapturedImage(imageSrc);
       toast({
-        title: "Image Captured",
-        description: "Please verify the VIN in the captured image",
+        title: "Photo Captured",
+        description: "Use this photo to verify and enter the VIN number",
       });
     }
+  };
+
+  const handleRetake = () => {
+    setCapturedImage(null);
   };
 
   return (
     <Dialog 
       open={open} 
-      onOpenChange={setOpen}
+      onOpenChange={(newOpen) => {
+        setOpen(newOpen);
+        if (!newOpen) {
+          setCapturedImage(null);
+        }
+      }}
     >
       <DialogTrigger asChild>
         <Button variant="outline" type="button">
           <Camera className="mr-2 h-4 w-4" />
-          Scan VIN
+          Take VIN Photo
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Scan Vehicle VIN</DialogTitle>
+          <DialogTitle>Capture VIN Photo</DialogTitle>
         </DialogHeader>
         <div className="mt-4">
-          <Webcam
-            ref={webcamRef}
-            screenshotFormat="image/jpeg"
-            videoConstraints={{
-              facingMode: { exact: "environment" },
-              width: 1280,
-              height: 720
-            }}
-            className="w-full rounded-lg"
-          />
-          <div className="mt-4">
-            <Button onClick={handleCapture} className="w-full">
-              Capture VIN
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            Point your camera at the vehicle's VIN plate and take a clear photo
-          </p>
+          {!capturedImage ? (
+            <>
+              <Webcam
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+                videoConstraints={{
+                  facingMode: { exact: "environment" },
+                  width: 1280,
+                  height: 720
+                }}
+                className="w-full rounded-lg"
+              />
+              <Button onClick={handleCapture} className="w-full mt-4">
+                Capture Photo
+              </Button>
+              <p className="text-sm text-muted-foreground mt-2">
+                Take a clear photo of the VIN plate
+              </p>
+            </>
+          ) : (
+            <>
+              <img 
+                src={capturedImage} 
+                alt="Captured VIN" 
+                className="w-full rounded-lg"
+              />
+              <div className="flex gap-2 mt-4">
+                <Button onClick={handleRetake} variant="outline" className="flex-1">
+                  Retake Photo
+                </Button>
+                <Button onClick={() => setOpen(false)} className="flex-1">
+                  Use Photo
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Use this photo as reference while entering the VIN
+              </p>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
