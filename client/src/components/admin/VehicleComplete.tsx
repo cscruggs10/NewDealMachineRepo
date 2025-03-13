@@ -11,6 +11,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 export function VehicleComplete() {
   const { toast } = useToast();
@@ -35,6 +36,8 @@ export function VehicleComplete() {
       condition: "",
     },
   });
+
+  console.log("Form errors:", form.formState.errors);
 
   const completeVehicle = useMutation({
     mutationFn: async (data: any) => {
@@ -110,7 +113,7 @@ export function VehicleComplete() {
           <div className="space-y-4">
             <h3 className="font-medium mb-2">Vehicles in Queue</h3>
             {queuedVehicles.map((vehicle) => (
-              <Card key={vehicle.id} className="hover:bg-accent/50 cursor-pointer">
+              <Card key={vehicle.id} className="hover:bg-accent/50">
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center">
                     <div>
@@ -250,7 +253,14 @@ export function VehicleComplete() {
                   className="flex-1"
                   disabled={completeVehicle.isPending}
                 >
-                  Complete Listing
+                  {completeVehicle.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Completing...
+                    </>
+                  ) : (
+                    'Complete Listing'
+                  )}
                 </Button>
                 <Button 
                   type="button" 
