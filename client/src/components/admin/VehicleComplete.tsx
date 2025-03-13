@@ -26,11 +26,11 @@ export function VehicleComplete() {
   const form = useForm({
     resolver: zodResolver(insertVehicleSchema),
     defaultValues: {
-      year: "",
+      year: undefined,
       make: "",
       model: "",
       trim: "",
-      mileage: "",
+      mileage: undefined,
       price: "",
       condition: "",
     },
@@ -39,8 +39,16 @@ export function VehicleComplete() {
   const completeVehicle = useMutation({
     mutationFn: async (data: any) => {
       if (!selectedVehicle) return;
-      return apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, {
+
+      // Convert string values to numbers
+      const formattedData = {
         ...data,
+        year: data.year ? parseInt(data.year) : undefined,
+        mileage: data.mileage ? parseInt(data.mileage) : undefined,
+      };
+
+      return apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, {
+        ...formattedData,
         status: "active",
         inQueue: false,
       });
@@ -113,11 +121,15 @@ export function VehicleComplete() {
               <FormField
                 control={form.control}
                 name="year"
-                render={({ field }) => (
+                render={({ field: { onChange, ...field } }) => (
                   <FormItem>
                     <FormLabel>Year</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input 
+                        type="number" 
+                        onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : '')}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -169,11 +181,15 @@ export function VehicleComplete() {
               <FormField
                 control={form.control}
                 name="mileage"
-                render={({ field }) => (
+                render={({ field: { onChange, ...field } }) => (
                   <FormItem>
                     <FormLabel>Mileage</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input 
+                        type="number"
+                        onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : '')}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -209,7 +225,7 @@ export function VehicleComplete() {
                   <FormItem>
                     <FormLabel>Price</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
