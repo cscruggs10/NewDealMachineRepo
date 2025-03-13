@@ -58,12 +58,13 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
     }
   };
 
+  // Ensure we display the year, make, model prominently
+  const vehicleTitle = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle className="text-lg">
-          {vehicle.year} {vehicle.make} {vehicle.model}
-        </CardTitle>
+        <CardTitle className="text-lg">{vehicleTitle}</CardTitle>
         <div className="flex items-center gap-2 mt-2 bg-muted/50 p-2 rounded-md">
           <div className="flex-1">
             <p className="text-sm font-medium">VIN:</p>
