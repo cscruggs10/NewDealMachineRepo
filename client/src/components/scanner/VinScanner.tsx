@@ -32,7 +32,15 @@ export function VinScanner({ onScan }: VinScannerProps) {
       console.log("Camera access granted");
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        setIsInitializing(false);
+
+        // Add event listener for when video starts playing
+        videoRef.current.onloadedmetadata = () => {
+          console.log("Video metadata loaded, playing stream");
+          videoRef.current?.play().catch(e => {
+            console.error("Error playing video:", e);
+          });
+          setIsInitializing(false);
+        };
       }
     })
     .catch(error => {
