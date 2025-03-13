@@ -13,7 +13,6 @@ export const vehicles = pgTable("vehicles", {
   price: text("price"), 
   description: text("description"),
   condition: text("condition"),
-  images: text("images").array(),
   videos: text("videos").array(),
   status: text("status").notNull().default('pending'), 
   inQueue: boolean("in_queue").notNull().default(true),
@@ -33,7 +32,6 @@ export const insertVehicleSchema = createInsertSchema(vehicles).omit({
   price: z.string().optional(),
   condition: z.string().optional(),
   description: z.string().optional(),
-  images: z.array(z.string()).optional(),
   videos: z.array(z.string()).optional(),
 });
 

@@ -5,51 +5,54 @@ import { insertVehicleSchema } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { uploadMedia } from "@/lib/upload"; //Import the missing function.
 import { FileUploader } from "@/components/ui/file-uploader";
-import { Loader2, Upload, Camera, VideoIcon } from "lucide-react";
+import { Loader2, Upload, VideoIcon } from "lucide-react";
 
-type UploadStep = 'vin' | 'video' | 'damage' | 'complete';
+type UploadStep = 'vin' | 'video' | 'complete';
 
 export default function UploadPage() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<UploadStep>('vin');
   const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [damagePhotos, setDamagePhotos] = useState<File[]>([]);
   const [walkaroundVideo, setWalkaroundVideo] = useState<File | null>(null);
-  const [damageNotes, setDamageNotes] = useState('');
 
   const form = useForm({
     resolver: zodResolver(insertVehicleSchema),
     defaultValues: {
       vin: "",
-      description: "",
-      images: [],
       videos: [],
     },
   });
 
   const createVehicle = useMutation({
     mutationFn: async (data: any) => {
-      let uploadedImages: string[] = [];
       let uploadedVideos: string[] = [];
 
-      if (damagePhotos.length || walkaroundVideo) {
+      if (walkaroundVideo) {
         setUploadingMedia(true);
         try {
-          if (damagePhotos.length) {
-            uploadedImages = await uploadMedia(damagePhotos);
+          // For now we'll use the mock upload endpoint
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: JSON.stringify({ filename: walkaroundVideo.name }),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to upload video');
           }
-          if (walkaroundVideo) {
-            uploadedVideos = await uploadMedia([walkaroundVideo]);
-          }
+
+          const videoData = await response.json();
+          uploadedVideos = [videoData]; // Assuming the API returns an array
         } catch (error) {
-          throw new Error("Failed to upload media files");
+          console.error('Upload error:', error);
+          throw new Error("Failed to upload video");
         } finally {
           setUploadingMedia(false);
         }
@@ -57,8 +60,6 @@ export default function UploadPage() {
 
       return apiRequest("POST", "/api/vehicles", {
         ...data,
-        description: damageNotes,
-        images: uploadedImages,
         videos: uploadedVideos,
         inQueue: true,
       });
@@ -70,9 +71,7 @@ export default function UploadPage() {
       });
       form.reset();
       setCurrentStep('complete');
-      setDamagePhotos([]);
       setWalkaroundVideo(null);
-      setDamageNotes('');
     },
     onError: (error) => {
       toast({
@@ -102,17 +101,6 @@ export default function UploadPage() {
           toast({
             title: "Error",
             description: "Please upload a walkaround video",
-            variant: "destructive",
-          });
-          return;
-        }
-        setCurrentStep('damage');
-        break;
-      case 'damage':
-        if (damagePhotos.length > 0 && !damageNotes) {
-          toast({
-            title: "Error",
-            description: "Please add notes describing the damage",
             variant: "destructive",
           });
           return;
@@ -162,37 +150,14 @@ export default function UploadPage() {
               <CardTitle>Vehicle Walkaround Video</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Please include footage of any damage in your walkthrough video
+              </p>
               <FileUploader
                 accept="video/*"
                 maxFiles={1}
                 onFilesSelected={(files) => setWalkaroundVideo(files[0])}
               />
-              <Button onClick={handleNext}>
-                Next <Camera className="ml-2 h-4 w-4" />
-              </Button>
-            </CardContent>
-          </>
-        );
-
-      case 'damage':
-        return (
-          <>
-            <CardHeader>
-              <CardTitle>Damage Documentation</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FileUploader
-                accept="image/*"
-                maxFiles={10}
-                onFilesSelected={setDamagePhotos}
-              />
-              {damagePhotos.length > 0 && (
-                <Textarea
-                  placeholder="Describe the damage shown in the photos"
-                  value={damageNotes}
-                  onChange={(e) => setDamageNotes(e.target.value)}
-                />
-              )}
               <Button 
                 onClick={handleNext}
                 disabled={createVehicle.isPending || uploadingMedia}
