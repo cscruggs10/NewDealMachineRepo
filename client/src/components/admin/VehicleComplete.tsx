@@ -38,7 +38,11 @@ export function VehicleComplete() {
 
   const completeVehicle = useMutation({
     mutationFn: async (data: any) => {
-      if (!selectedVehicle) return;
+      if (!selectedVehicle) {
+        throw new Error("No vehicle selected");
+      }
+
+      console.log("Form data before formatting:", data);
 
       // Convert string values to numbers
       const formattedData = {
@@ -46,6 +50,8 @@ export function VehicleComplete() {
         year: data.year ? parseInt(data.year) : undefined,
         mileage: data.mileage ? parseInt(data.mileage) : undefined,
       };
+
+      console.log("Formatted data:", formattedData);
 
       return apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, {
         ...formattedData,
@@ -62,14 +68,20 @@ export function VehicleComplete() {
       setSelectedVehicle(null);
       form.reset();
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Error completing vehicle:", error);
       toast({
         title: "Error",
-        description: "Failed to complete vehicle listing",
+        description: error.message || "Failed to complete vehicle listing",
         variant: "destructive",
       });
     },
   });
+
+  const onSubmit = async (data: any) => {
+    console.log("Form submitted with data:", data);
+    completeVehicle.mutate(data);
+  };
 
   if (isLoading) {
     return <div>Loading queue...</div>;
@@ -98,7 +110,7 @@ export function VehicleComplete() {
           <div className="space-y-4">
             <h3 className="font-medium mb-2">Vehicles in Queue</h3>
             {queuedVehicles.map((vehicle) => (
-              <Card key={vehicle.id} className="hover:bg-accent/50 cursor-pointer" onClick={() => setSelectedVehicle(vehicle)}>
+              <Card key={vehicle.id} className="hover:bg-accent/50 cursor-pointer">
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center">
                     <div>
@@ -117,7 +129,7 @@ export function VehicleComplete() {
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => completeVehicle.mutate(data))} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="year"
