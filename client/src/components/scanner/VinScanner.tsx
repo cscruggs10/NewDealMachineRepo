@@ -1,9 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import Webcam from "react-webcam";
+import { decodeVIN, vinSchema } from "@/lib/vin";
+import Quagga from 'quagga';
 
 interface VinScannerProps {
   onScan: (vin: string) => void;
@@ -11,85 +12,119 @@ interface VinScannerProps {
 
 export function VinScanner({ onScan }: VinScannerProps) {
   const [open, setOpen] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const webcamRef = useRef<Webcam>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const videoRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const handleCapture = () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (imageSrc) {
-      setCapturedImage(imageSrc);
-      toast({
-        title: "Photo Captured",
-        description: "Use this photo to verify and enter the VIN number",
-      });
-    }
-  };
+  useEffect(() => {
+    if (!open || !videoRef.current) return;
 
-  const handleRetake = () => {
-    setCapturedImage(null);
-  };
+    setIsScanning(true);
+    console.log("Initializing Quagga...");
+
+    Quagga.init({
+      inputStream: {
+        name: "Live",
+        type: "LiveStream",
+        target: videoRef.current,
+        constraints: {
+          facingMode: "environment", // Use back camera
+          width: 1280,
+          height: 720,
+        },
+      },
+      decoder: {
+        readers: ["code_39_reader"], // VIN uses Code 39 format
+        debug: {
+          drawBoundingBox: true,
+          showPattern: true,
+        },
+      },
+    }, (err) => {
+      if (err) {
+        console.error("Quagga initialization failed:", err);
+        toast({
+          title: "Scanner Error",
+          description: "Failed to initialize camera. Please ensure camera access is enabled.",
+          variant: "destructive",
+        });
+        setOpen(false);
+        return;
+      }
+
+      console.log("Quagga initialized successfully");
+      Quagga.start();
+    });
+
+    // Handle successful scans
+    Quagga.onDetected(async (result) => {
+      const scannedVin = result.codeResult.code;
+      console.log("Scanned code:", scannedVin);
+
+      // Basic VIN validation (17 characters)
+      if (scannedVin && scannedVin.length === 17) {
+        try {
+          // Verify VIN using NHTSA API
+          const validatedVin = await vinSchema.parseAsync(scannedVin);
+          const vehicleInfo = await decodeVIN(validatedVin);
+
+          if (vehicleInfo) {
+            onScan(scannedVin);
+            setOpen(false);
+            toast({
+              title: "Success",
+              description: `Found ${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model}`,
+            });
+          }
+        } catch (error) {
+          console.error("VIN validation error:", error);
+          toast({
+            title: "Invalid VIN",
+            description: "Please try scanning again",
+            variant: "destructive",
+          });
+        }
+      }
+    });
+
+    return () => {
+      if (isScanning) {
+        console.log("Stopping Quagga...");
+        Quagga.stop();
+        setIsScanning(false);
+      }
+    };
+  }, [open, onScan, toast]);
 
   return (
     <Dialog 
       open={open} 
       onOpenChange={(newOpen) => {
-        setOpen(newOpen);
-        if (!newOpen) {
-          setCapturedImage(null);
+        if (!newOpen && isScanning) {
+          Quagga.stop();
+          setIsScanning(false);
         }
+        setOpen(newOpen);
       }}
     >
       <DialogTrigger asChild>
         <Button variant="outline" type="button">
           <Camera className="mr-2 h-4 w-4" />
-          Take VIN Photo
+          Scan VIN
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Capture VIN Photo</DialogTitle>
+          <DialogTitle>Scan VIN Barcode</DialogTitle>
         </DialogHeader>
         <div className="mt-4">
-          {!capturedImage ? (
-            <>
-              <Webcam
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                videoConstraints={{
-                  facingMode: { exact: "environment" },
-                  width: 1280,
-                  height: 720
-                }}
-                className="w-full rounded-lg"
-              />
-              <Button onClick={handleCapture} className="w-full mt-4">
-                Capture Photo
-              </Button>
-              <p className="text-sm text-muted-foreground mt-2">
-                Take a clear photo of the VIN plate
-              </p>
-            </>
-          ) : (
-            <>
-              <img 
-                src={capturedImage} 
-                alt="Captured VIN" 
-                className="w-full rounded-lg"
-              />
-              <div className="flex gap-2 mt-4">
-                <Button onClick={handleRetake} variant="outline" className="flex-1">
-                  Retake Photo
-                </Button>
-                <Button onClick={() => setOpen(false)} className="flex-1">
-                  Use Photo
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Use this photo as reference while entering the VIN
-              </p>
-            </>
-          )}
+          <div 
+            ref={videoRef} 
+            className="w-full aspect-video bg-muted rounded-lg overflow-hidden"
+          />
+          <p className="text-sm text-muted-foreground mt-2">
+            Point your camera at the vehicle's VIN barcode
+          </p>
         </div>
       </DialogContent>
     </Dialog>
