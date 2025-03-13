@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PricingQueue } from "@/components/admin/PricingQueue";
+import { VehicleComplete } from "@/components/admin/VehicleComplete";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Vehicle, Offer } from "@shared/schema";
@@ -93,15 +94,15 @@ export default function Admin() {
           </Card>
         </div>
 
-        <Tabs defaultValue="pricing">
+        <Tabs defaultValue="complete">
           <TabsList>
-            <TabsTrigger value="pricing">Pricing Queue</TabsTrigger>
+            <TabsTrigger value="complete">Complete Vehicle</TabsTrigger>
             <TabsTrigger value="offers">Offers</TabsTrigger>
             <TabsTrigger value="codes">Buy Codes</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="pricing" className="mt-6">
-            <PricingQueue />
+          <TabsContent value="complete" className="mt-6">
+            <VehicleComplete />
           </TabsContent>
 
           <TabsContent value="offers">
