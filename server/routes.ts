@@ -3,6 +3,27 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema, createInitialVehicleSchema } from "@shared/schema";
 import { google } from "googleapis";
+import multer from "multer";
+import { uploadToGoogleDrive } from "./lib/drive";
+import path from "path";
+import express from 'express';
+
+
+// Configure multer for memory storage instead of disk
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  fileFilter: (_req, file, cb) => {
+    // Accept only video files
+    if (file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only video files are allowed'));
+    }
+  },
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB limit
+  }
+});
 
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
@@ -170,20 +191,31 @@ export async function registerRoutes(app: Express) {
     res.status(201).json(buyCode);
   });
 
-  // Add upload endpoint after other routes
-  app.post("/api/upload", async (req, res) => {
+  // Upload endpoint
+  app.post("/api/upload", upload.array('files'), async (req, res) => {
     try {
-      console.log("Received upload request");
-      // For now, mock successful upload
-      // In production, this would handle actual file uploads to storage
-      // Return mock URLs for testing
-      const mockUrls = ["https://example.com/mock-file-1.jpg"];
-      res.json(mockUrls);
+      console.log("Processing video upload...");
+
+      if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+        return res.status(400).json({ message: "No files uploaded" });
+      }
+
+      // Upload files to Google Drive
+      const uploadPromises = (req.files as Express.Multer.File[]).map(file => 
+        uploadToGoogleDrive(file)
+      );
+
+      const videoUrls = await Promise.all(uploadPromises);
+      console.log("Upload successful, video URLs:", videoUrls);
+
+      res.json(videoUrls);
     } catch (error) {
       console.error("Upload error:", error);
       res.status(500).json({ message: "Failed to upload files" });
     }
   });
+
+  app.use('/uploads', express.static('uploads'));
 
   return httpServer;
 }
