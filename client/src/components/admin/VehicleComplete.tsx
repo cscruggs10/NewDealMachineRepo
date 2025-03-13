@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function VehicleComplete() {
   const { toast } = useToast();
@@ -101,7 +102,14 @@ export function VehicleComplete() {
                     <div>
                       <p className="font-medium">VIN: {vehicle.vin}</p>
                       {vehicle.videos?.length > 0 && (
-                        <p className="text-sm text-muted-foreground">Video uploaded</p>
+                        <a 
+                          href={vehicle.videos[0]} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline"
+                        >
+                          View Walkthrough Video
+                        </a>
                       )}
                     </div>
                     <Button onClick={() => setSelectedVehicle(vehicle)}>
@@ -114,6 +122,20 @@ export function VehicleComplete() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {selectedVehicle.videos?.length > 0 && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-1">Walkthrough Video</label>
+                <a 
+                  href={selectedVehicle.videos[0]} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  View Video
+                </a>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium mb-1">Year</label>
               <Input
@@ -159,6 +181,22 @@ export function VehicleComplete() {
                 onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Certification</label>
+              <Select 
+                value={formData.condition}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Deal Machine Certified">Deal Machine Certified</SelectItem>
+                  <SelectItem value="Auction Certified">Auction Certified</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex gap-2">
