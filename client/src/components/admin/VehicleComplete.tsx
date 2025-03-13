@@ -34,30 +34,26 @@ export function VehicleComplete() {
       mileage: undefined,
       price: "",
       condition: "",
+      vin: selectedVehicle?.vin || "",
+      videos: selectedVehicle?.videos || [],
     },
   });
 
-  console.log("Form errors:", form.formState.errors);
+  const updateVehicle = useMutation({
+    mutationFn: (data: any) => {
+      if (!selectedVehicle) throw new Error("No vehicle selected");
 
-  const submitOffer = useMutation({
-    mutationFn: async (data: any) => {
-      if (!selectedVehicle) {
-        throw new Error("No vehicle selected");
-      }
-
-      // Convert string values to numbers
       const formattedData = {
         ...data,
-        year: data.year ? parseInt(data.year) : undefined,
-        mileage: data.mileage ? parseInt(data.mileage) : undefined,
-      };
-
-      console.log("Submitting data:", formattedData);
-      return apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, {
-        ...formattedData,
+        year: parseInt(data.year),
+        mileage: parseInt(data.mileage),
+        vin: selectedVehicle.vin,
+        videos: selectedVehicle.videos,
         status: "active",
         inQueue: false,
-      });
+      };
+
+      return apiRequest("PATCH", `/api/vehicles/${selectedVehicle.id}`, formattedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
@@ -69,7 +65,6 @@ export function VehicleComplete() {
       form.reset();
     },
     onError: (error: any) => {
-      console.error("Error completing vehicle:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to complete vehicle listing",
@@ -78,16 +73,11 @@ export function VehicleComplete() {
     },
   });
 
-  const onSubmit = async (data: any) => {
-    console.log("Form submitted with data:", data);
-    submitOffer.mutate(data);
-  };
-
   if (isLoading) {
     return <div>Loading queue...</div>;
   }
 
-  if (queuedVehicles.length === 0) {
+  if (!queuedVehicles.length) {
     return (
       <Card>
         <CardHeader>
@@ -132,19 +122,15 @@ export function VehicleComplete() {
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit((data) => updateVehicle.mutate(data))} className="space-y-4">
               <FormField
                 control={form.control}
                 name="year"
-                render={({ field: { onChange, ...field } }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Year</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : '')}
-                        {...field} 
-                      />
+                      <Input type="number" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -196,15 +182,11 @@ export function VehicleComplete() {
               <FormField
                 control={form.control}
                 name="mileage"
-                render={({ field: { onChange, ...field } }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Mileage</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number"
-                        onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : '')}
-                        {...field}
-                      />
+                      <Input type="number" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -251,9 +233,9 @@ export function VehicleComplete() {
                 <Button 
                   type="submit" 
                   className="flex-1"
-                  disabled={submitOffer.isPending}
+                  disabled={updateVehicle.isPending}
                 >
-                  {submitOffer.isPending ? (
+                  {updateVehicle.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Completing...
