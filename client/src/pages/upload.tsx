@@ -28,6 +28,10 @@ export default function UploadPage() {
     resolver: zodResolver(createInitialVehicleSchema),
     defaultValues: {
       vin: "",
+      year: "",
+      make: "",
+      model: "",
+      trim: "",
       videos: [],
     },
   });
@@ -194,6 +198,59 @@ export default function UploadPage() {
                       </FormItem>
                     )}
                   />
+
+                  {/* Auto-populated fields */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="year"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Year</FormLabel>
+                          <FormControl>
+                            <Input {...field} disabled />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="make"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Make</FormLabel>
+                          <FormControl>
+                            <Input {...field} disabled />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="model"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Model</FormLabel>
+                          <FormControl>
+                            <Input {...field} disabled />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="trim"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Trim</FormLabel>
+                          <FormControl>
+                            <Input {...field} disabled />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <div className="flex flex-col md:flex-row gap-4 items-start">
                     <Button onClick={handleNext} className="md:flex-1">
                       Next <VideoIcon className="ml-2 h-4 w-4" />
