@@ -20,20 +20,19 @@ export function VehicleComplete() {
   const queuedVehicles = vehicles?.filter(v => v.inQueue) || [];
 
   const [formData, setFormData] = useState({
+    vin: '',
     year: '',
     make: '',
     model: '',
     trim: '',
     mileage: '',
-    condition: 'Deal Machine Certified'
+    price: '',
+    condition: ''
   });
-
-  // Log vehicles data to check video URLs
-  console.log("Queued vehicles:", queuedVehicles);
 
   const updateVehicle = useMutation({
     mutationFn: async (vehicleId: number) => {
-      // Keep existing video and VIN data
+      // Keep existing video data
       const vehicle = queuedVehicles.find(v => v.id === vehicleId);
       if (!vehicle) throw new Error("Vehicle not found");
 
@@ -42,7 +41,6 @@ export function VehicleComplete() {
         year: Number(formData.year),
         mileage: Number(formData.mileage),
         videos: vehicle.videos, // Preserve existing videos
-        vin: vehicle.vin, // Preserve VIN
         status: "active",
         inQueue: false,
       };
@@ -58,12 +56,14 @@ export function VehicleComplete() {
       });
       setSelectedVehicle(null);
       setFormData({
+        vin: '',
         year: '',
         make: '',
         model: '',
         trim: '',
         mileage: '',
-        condition: 'Deal Machine Certified'
+        price: '',
+        condition: ''
       });
     },
     onError: (error) => {
@@ -93,6 +93,12 @@ export function VehicleComplete() {
     );
   }
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedVehicle) return;
+    updateVehicle.mutate(selectedVehicle.id);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -108,21 +114,20 @@ export function VehicleComplete() {
                     <div className="space-y-2">
                       <p className="font-medium">VIN: {vehicle.vin}</p>
                       {vehicle.videos && vehicle.videos[0] && (
-                        <div className="text-sm">
-                          <a 
-                            href={vehicle.videos[0]}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          >
-                            Click to view walkthrough video
-                          </a>
-                        </div>
+                        <a 
+                          href={vehicle.videos[0]} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          View Walkaround Video
+                        </a>
                       )}
                     </div>
                     <Button onClick={() => {
-                      console.log("Selected vehicle:", vehicle);
                       setSelectedVehicle(vehicle);
+                      // Pre-fill the VIN
+                      setFormData(prev => ({ ...prev, vin: vehicle.vin }));
                     }}>
                       Complete
                     </Button>
@@ -132,13 +137,7 @@ export function VehicleComplete() {
             ))}
           </div>
         ) : (
-          <form 
-            onSubmit={(e) => {
-              e.preventDefault();
-              updateVehicle.mutate(selectedVehicle.id);
-            }} 
-            className="space-y-4"
-          >
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Video Link Section */}
             {selectedVehicle.videos && selectedVehicle.videos[0] && (
               <div className="mb-6 p-4 bg-muted rounded-lg">
@@ -149,12 +148,23 @@ export function VehicleComplete() {
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
                 >
-                  View walkthrough video
+                  View walkaround video
                 </a>
               </div>
             )}
 
-            {/* Vehicle Details Form */}
+            {/* VIN */}
+            <div>
+              <label className="block text-sm font-medium mb-1">VIN</label>
+              <Input
+                value={formData.vin}
+                onChange={(e) => setFormData(prev => ({ ...prev, vin: e.target.value }))}
+                maxLength={17}
+                required
+              />
+            </div>
+
+            {/* Year */}
             <div>
               <label className="block text-sm font-medium mb-1">Year</label>
               <Input
@@ -165,6 +175,7 @@ export function VehicleComplete() {
               />
             </div>
 
+            {/* Make */}
             <div>
               <label className="block text-sm font-medium mb-1">Make</label>
               <Input
@@ -174,6 +185,7 @@ export function VehicleComplete() {
               />
             </div>
 
+            {/* Model */}
             <div>
               <label className="block text-sm font-medium mb-1">Model</label>
               <Input
@@ -183,6 +195,7 @@ export function VehicleComplete() {
               />
             </div>
 
+            {/* Trim */}
             <div>
               <label className="block text-sm font-medium mb-1">Trim</label>
               <Input
@@ -191,6 +204,7 @@ export function VehicleComplete() {
               />
             </div>
 
+            {/* Mileage */}
             <div>
               <label className="block text-sm font-medium mb-1">Mileage</label>
               <Input
@@ -201,15 +215,22 @@ export function VehicleComplete() {
               />
             </div>
 
-            {/* Certification Selection */}
+            {/* Price */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Price</label>
+              <Input
+                value={formData.price}
+                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                required
+              />
+            </div>
+
+            {/* Certification Type */}
             <div>
               <label className="block text-sm font-medium mb-1">Certification Type</label>
               <Select 
                 value={formData.condition}
-                onValueChange={(value) => {
-                  console.log("Selected certification:", value);
-                  setFormData(prev => ({ ...prev, condition: value }));
-                }}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select certification type" />
