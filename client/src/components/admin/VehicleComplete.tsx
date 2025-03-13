@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { VideoIcon } from "lucide-react";
+import { VideoIcon, ExternalLink } from "lucide-react";
 
 export function VehicleComplete() {
   const { toast } = useToast();
@@ -34,11 +34,12 @@ export function VehicleComplete() {
         ...formData,
         year: parseInt(formData.year),
         mileage: parseInt(formData.mileage),
+        videos: selectedVehicle?.videos || [], // Preserve videos array
         status: "active",
         inQueue: false,
       };
 
-      console.log("Submitting with payload:", payload);
+      console.log("Submitting vehicle update:", payload);
       return apiRequest("PATCH", `/api/vehicles/${vehicleId}`, payload);
     },
     onSuccess: () => {
@@ -57,7 +58,8 @@ export function VehicleComplete() {
         condition: 'Deal Machine Certified'
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Update error:", error);
       toast({
         title: "Error",
         description: "Failed to complete vehicle listing",
@@ -89,6 +91,21 @@ export function VehicleComplete() {
     updateVehicle.mutate(selectedVehicle.id);
   };
 
+  const renderVideoLink = (url: string) => (
+    <div className="flex items-center gap-2">
+      <VideoIcon className="h-4 w-4" />
+      <a 
+        href={url}
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="text-primary hover:underline flex items-center gap-1"
+      >
+        View Walkthrough Video
+        <ExternalLink className="h-3 w-3" />
+      </a>
+    </div>
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -103,19 +120,7 @@ export function VehicleComplete() {
                   <div className="flex justify-between items-center">
                     <div className="space-y-2">
                       <p className="font-medium">VIN: {vehicle.vin}</p>
-                      {vehicle.videos?.[0] && (
-                        <div className="flex items-center gap-2">
-                          <VideoIcon className="h-4 w-4" />
-                          <a 
-                            href={vehicle.videos[0]} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:underline"
-                          >
-                            View Walkthrough Video
-                          </a>
-                        </div>
-                      )}
+                      {vehicle.videos?.[0] && renderVideoLink(vehicle.videos[0])}
                     </div>
                     <Button onClick={() => setSelectedVehicle(vehicle)}>
                       Complete
@@ -130,17 +135,7 @@ export function VehicleComplete() {
             {selectedVehicle.videos?.[0] && (
               <div className="mb-6 p-4 bg-muted rounded-lg">
                 <label className="block text-sm font-medium mb-2">Walkthrough Video</label>
-                <div className="flex items-center gap-2">
-                  <VideoIcon className="h-4 w-4" />
-                  <a 
-                    href={selectedVehicle.videos[0]} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    View Video
-                  </a>
-                </div>
+                {renderVideoLink(selectedVehicle.videos[0])}
               </div>
             )}
 
