@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Camera, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { BrowserMultiFormatReader, Result, BarcodeFormat } from '@zxing/library';
 
 interface VinScannerProps {
   onScan: (vin: string) => void;
@@ -18,12 +19,15 @@ export function VinScanner({ onScan }: VinScannerProps) {
     if (!open) return;
 
     setIsInitializing(true);
-    console.log("Requesting camera access...");
+    console.log("Initializing barcode scanner...");
 
-    // Simple camera access first
+    const codeReader = new BrowserMultiFormatReader();
+    codeReader.setHints(new Map([[BarcodeFormat.CODE_39, {}]])); // VIN barcodes typically use Code 39
+
+    // Request camera access
     navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: { exact: "environment" }, // Prefer back camera
+        facingMode: { exact: "environment" }, // Use back camera
         width: { ideal: 1280 },
         height: { ideal: 720 }
       }
@@ -32,14 +36,40 @@ export function VinScanner({ onScan }: VinScannerProps) {
       console.log("Camera access granted");
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play();
 
-        // Add event listener for when video starts playing
-        videoRef.current.onloadedmetadata = () => {
-          console.log("Video metadata loaded, playing stream");
-          videoRef.current?.play().catch(e => {
-            console.error("Error playing video:", e);
-          });
-          setIsInitializing(false);
+        // Start continuous barcode scanning
+        const scanInterval = setInterval(() => {
+          if (!videoRef.current) return;
+
+          codeReader.decodeFromVideoElement(videoRef.current)
+            .then((result: Result) => {
+              const scannedVin = result.getText();
+              console.log("Scanned VIN:", scannedVin);
+
+              // Validate VIN format (17 characters)
+              if (scannedVin.length === 17) {
+                onScan(scannedVin);
+                setOpen(false);
+                clearInterval(scanInterval);
+
+                toast({
+                  title: "VIN Scanned!",
+                  description: "Vehicle identification number successfully captured",
+                });
+              }
+            })
+            .catch(() => {
+              // Ignore errors during continuous scanning
+            });
+        }, 500); // Check every 500ms
+
+        setIsInitializing(false);
+
+        // Cleanup function
+        return () => {
+          clearInterval(scanInterval);
+          codeReader.reset();
         };
       }
     })
@@ -54,14 +84,13 @@ export function VinScanner({ onScan }: VinScannerProps) {
       setIsInitializing(false);
     });
 
-    // Cleanup function
     return () => {
       if (videoRef.current?.srcObject) {
         const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
         tracks.forEach(track => track.stop());
       }
     };
-  }, [open, toast]);
+  }, [open, onScan, toast]);
 
   return (
     <Dialog 
