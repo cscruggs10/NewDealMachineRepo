@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { OfferForm } from "../forms/OfferForm";
 import { formatCurrency } from "@/lib/utils";
-import { VideoIcon } from "lucide-react";
+import { VideoIcon, Copy } from "lucide-react";
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -42,12 +42,42 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
     }
   };
 
+  const copyVin = async () => {
+    try {
+      await navigator.clipboard.writeText(vehicle.vin);
+      toast({
+        title: "VIN Copied!",
+        description: "Vehicle VIN has been copied to your clipboard",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to copy VIN to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle className="text-lg">
           {vehicle.year} {vehicle.make} {vehicle.model}
         </CardTitle>
+        <div className="flex items-center gap-2 mt-2 bg-muted/50 p-2 rounded-md">
+          <div className="flex-1">
+            <p className="text-sm font-medium">VIN:</p>
+            <p className="font-mono text-sm">{vehicle.vin}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={copyVin}
+            title="Copy VIN"
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-4">
         {vehicle.videos?.[0] && (
