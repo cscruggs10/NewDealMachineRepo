@@ -8,20 +8,32 @@ import { uploadToGoogleDrive } from "./lib/drive";
 import path from "path";
 import express from 'express';
 
-
 // Configure multer for memory storage instead of disk
 const upload = multer({ 
   storage: multer.memoryStorage(),
   fileFilter: (_req, file, cb) => {
-    // Accept only video files
-    if (file.mimetype.startsWith('video/')) {
+    // Accept common video formats including iOS formats
+    const allowedTypes = [
+      'video/mp4',
+      'video/quicktime', // For .mov files from iOS
+      'video/x-m4v',     // For iOS M4V format
+      'video/webm'
+    ];
+
+    console.log('Received file:', {
+      filename: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size
+    });
+
+    if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only video files are allowed'));
+      cb(new Error(`Unsupported video format: ${file.mimetype}. Allowed formats: ${allowedTypes.join(', ')}`));
     }
   },
   limits: {
-    fileSize: 100 * 1024 * 1024 // 100MB limit
+    fileSize: 500 * 1024 * 1024 // Increased to 500MB to handle HD videos
   }
 });
 
@@ -200,6 +212,12 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "No files uploaded" });
       }
 
+      console.log("Files received:", req.files.map(f => ({
+        name: f.originalname,
+        type: f.mimetype,
+        size: f.size
+      })));
+
       // Upload files to Google Drive
       const uploadPromises = (req.files as Express.Multer.File[]).map(file => 
         uploadToGoogleDrive(file)
@@ -211,7 +229,11 @@ export async function registerRoutes(app: Express) {
       res.json(videoUrls);
     } catch (error) {
       console.error("Upload error:", error);
-      res.status(500).json({ message: "Failed to upload files" });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ 
+        message: "Failed to upload files",
+        error: errorMessage
+      });
     }
   });
 

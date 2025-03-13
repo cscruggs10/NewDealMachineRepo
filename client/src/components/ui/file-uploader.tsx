@@ -11,7 +11,7 @@ interface FileUploaderProps {
 }
 
 export function FileUploader({
-  accept,
+  accept = "video/mp4,video/quicktime,video/x-m4v,video/webm", // Updated to support iOS formats
   maxFiles = 1,
   onFilesSelected,
   className,
@@ -21,10 +21,21 @@ export function FileUploader({
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
+
     if (files.length > maxFiles) {
       alert(`Maximum ${maxFiles} files allowed`);
       return;
     }
+
+    // Log file information for debugging
+    files.forEach(file => {
+      console.log('Selected file:', {
+        name: file.name,
+        type: file.type,
+        size: `${(file.size / (1024 * 1024)).toFixed(2)}MB`
+      });
+    });
+
     setSelectedFiles(files);
     onFilesSelected(files);
   };
@@ -33,7 +44,7 @@ export function FileUploader({
     const newFiles = selectedFiles.filter((_, i) => i !== index);
     setSelectedFiles(newFiles);
     onFilesSelected(newFiles);
-    
+
     // Reset the input to allow selecting the same file again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -50,7 +61,7 @@ export function FileUploader({
               <span className="font-semibold">Click to upload</span> or drag and drop
             </p>
             <p className="text-xs text-muted-foreground">
-              Maximum {maxFiles} {maxFiles === 1 ? 'file' : 'files'}
+              Record a video walkthrough (up to 500MB)
             </p>
           </div>
           <input
@@ -60,6 +71,7 @@ export function FileUploader({
             accept={accept}
             multiple={maxFiles > 1}
             onChange={handleFileChange}
+            capture="environment" // This enables the back camera on mobile devices
           />
         </label>
       </div>
@@ -71,7 +83,12 @@ export function FileUploader({
               key={`${file.name}-${index}`}
               className="flex items-center justify-between p-2 bg-accent/50 rounded"
             >
-              <span className="text-sm truncate max-w-[200px]">{file.name}</span>
+              <div className="flex-1 pr-2">
+                <span className="text-sm truncate block">{file.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {(file.size / (1024 * 1024)).toFixed(2)}MB
+                </span>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
