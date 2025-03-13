@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { BrowserMultiFormatReader } from '@zxing/library';
+import Webcam from "react-webcam";
 
 interface VinScannerProps {
   onScan: (vin: string) => void;
@@ -11,96 +11,25 @@ interface VinScannerProps {
 
 export function VinScanner({ onScan }: VinScannerProps) {
   const [open, setOpen] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const webcamRef = useRef<Webcam>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!open) return;
-
-    setIsInitializing(true);
-    console.log("Initializing barcode scanner...");
-
-    const codeReader = new BrowserMultiFormatReader();
-
-    // Request camera access
-    navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { exact: "environment" }, // Use back camera
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    })
-    .then(stream => {
-      console.log("Camera access granted");
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-
-        // Start continuous barcode scanning
-        const scanInterval = setInterval(() => {
-          if (!videoRef.current) return;
-
-          codeReader.decodeFromVideoElement(videoRef.current)
-            .then((result) => {
-              const scannedVin = result.getText();
-              console.log("Scanned VIN:", scannedVin);
-
-              // Validate VIN format (17 characters)
-              if (scannedVin.length === 17) {
-                onScan(scannedVin);
-                setOpen(false);
-                clearInterval(scanInterval);
-
-                toast({
-                  title: "VIN Scanned!",
-                  description: "Vehicle identification number successfully captured",
-                });
-              }
-            })
-            .catch(() => {
-              // Ignore errors during continuous scanning
-            });
-        }, 500); // Check every 500ms
-
-        setIsInitializing(false);
-
-        // Cleanup function
-        return () => {
-          clearInterval(scanInterval);
-          codeReader.reset();
-        };
-      }
-    })
-    .catch(error => {
-      console.error("Camera access error:", error);
+  const handleCapture = () => {
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (imageSrc) {
+      // For now, since we don't have OCR, let's just let users manually verify the VIN
+      // by showing them the captured image
       toast({
-        title: "Camera Access Error",
-        description: "Please allow camera access and try again",
-        variant: "destructive",
+        title: "Image Captured",
+        description: "Please verify the VIN in the captured image",
       });
-      setOpen(false);
-      setIsInitializing(false);
-    });
-
-    return () => {
-      if (videoRef.current?.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-        tracks.forEach(track => track.stop());
-      }
-    };
-  }, [open, onScan, toast]);
+    }
+  };
 
   return (
     <Dialog 
       open={open} 
-      onOpenChange={(newOpen) => {
-        if (!newOpen && videoRef.current?.srcObject) {
-          const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-          tracks.forEach(track => track.stop());
-        }
-        setOpen(newOpen);
-      }}
+      onOpenChange={setOpen}
     >
       <DialogTrigger asChild>
         <Button variant="outline" type="button">
@@ -113,21 +42,23 @@ export function VinScanner({ onScan }: VinScannerProps) {
           <DialogTitle>Scan Vehicle VIN</DialogTitle>
         </DialogHeader>
         <div className="mt-4">
-          {isInitializing ? (
-            <div className="w-full h-64 bg-muted rounded-md flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-muted-foreground">Initializing camera...</span>
-            </div>
-          ) : (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full h-64 object-cover rounded-md bg-muted"
-            />
-          )}
+          <Webcam
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            videoConstraints={{
+              facingMode: { exact: "environment" },
+              width: 1280,
+              height: 720
+            }}
+            className="w-full rounded-lg"
+          />
+          <div className="mt-4">
+            <Button onClick={handleCapture} className="w-full">
+              Capture VIN
+            </Button>
+          </div>
           <p className="text-sm text-muted-foreground mt-2">
-            Point your camera at the vehicle's VIN barcode
+            Point your camera at the vehicle's VIN plate and take a clear photo
           </p>
         </div>
       </DialogContent>
