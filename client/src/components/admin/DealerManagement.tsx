@@ -101,8 +101,6 @@ export function DealerManagement() {
     mutationFn: async (dealerId: number) => {
       const response = await apiRequest("POST", "/api/buy-codes", {
         dealerId,
-        maxUses: 10,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       });
       return response.json();
     },
@@ -138,7 +136,6 @@ export function DealerManagement() {
                   <h3 className="font-medium mb-2">Buy Code Generated</h3>
                   <p className="text-2xl font-mono">{newBuyCode.code}</p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    This code expires in 30 days and can be used up to 10 times.
                     Make sure to provide this code to the dealer.
                   </p>
                 </div>
@@ -378,9 +375,6 @@ export function DealerManagement() {
                               <p className="font-mono text-sm bg-muted p-2 rounded inline-block">
                                 {code.code}
                               </p>
-                              <span className="text-xs text-muted-foreground ml-2">
-                                Uses: {code.usageCount}/{code.maxUses || "∞"}
-                              </span>
                             </div>
                           ))}
                         </div>

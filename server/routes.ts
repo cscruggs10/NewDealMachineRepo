@@ -9,6 +9,16 @@ import fs from 'fs';
 import fetch from 'node-fetch';
 import session from 'express-session';
 
+// Modify the generateBuyCode function to create 4-character codes
+function generateBuyCode(): string {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 4; i++) {
+    code += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return code;
+}
+
 // Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -78,11 +88,6 @@ async function decodeVIN(vin: string) {
   }
 }
 
-// Add this function at the top with other imports
-function generateBuyCode(): string {
-  // Generate a random 8-character alphanumeric code
-  return Math.random().toString(36).substring(2, 10).toUpperCase();
-}
 
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
@@ -108,18 +113,15 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: result.error.message });
       }
 
-      console.log('Creating dealer with data:', result.data); // Debug log
+      console.log('Creating dealer with data:', result.data);
 
       // Create dealer
       const dealer = await storage.createDealer(result.data);
 
-      // Generate and create buy code for the dealer
+      // Generate and create buy code for the dealer without limits
       const buyCode = await storage.createBuyCode({
         code: generateBuyCode(),
         dealerId: dealer.id,
-        active: true,
-        maxUses: 10, // Default to 10 uses
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       });
 
       // Return both dealer and buy code information
@@ -179,14 +181,6 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ message: "Invalid buy code" });
       }
 
-      // Check if the code has expired or reached max uses
-      if (buyCode.maxUses && buyCode.usageCount >= buyCode.maxUses) {
-        return res.status(403).json({ message: "Buy code has expired" });
-      }
-
-      if (buyCode.expiresAt && new Date(buyCode.expiresAt) < new Date()) {
-        return res.status(403).json({ message: "Buy code has expired" });
-      }
 
       // Get the vehicle
       const vehicle = await storage.getVehicle(vehicleId);
@@ -272,12 +266,16 @@ export async function registerRoutes(app: Express) {
 
   // Buy code management
   app.post("/api/buy-codes", async (req, res) => {
-    const result = insertBuyCodeSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: result.error.message });
+    try {
+      const buyCode = await storage.createBuyCode({
+        code: generateBuyCode(),
+        dealerId: req.body.dealerId,
+      });
+      res.status(201).json(buyCode);
+    } catch (error) {
+      console.error('Error generating buy code:', error);
+      res.status(500).json({ message: "Failed to generate buy code" });
     }
-    const buyCode = await storage.createBuyCode(result.data);
-    res.status(201).json(buyCode);
   });
 
   // Add this GET endpoint for buy codes after the existing buy code routes
