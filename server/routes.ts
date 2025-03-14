@@ -78,6 +78,12 @@ async function decodeVIN(vin: string) {
   }
 }
 
+// Add this function at the top with other imports
+function generateBuyCode(): string {
+  // Generate a random 8-character alphanumeric code
+  return Math.random().toString(36).substring(2, 10).toUpperCase();
+}
+
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
@@ -102,8 +108,20 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: result.error.message });
       }
 
+      // Create dealer
       const dealer = await storage.createDealer(result.data);
-      res.status(201).json(dealer);
+
+      // Generate and create buy code for the dealer
+      const buyCode = await storage.createBuyCode({
+        code: generateBuyCode(),
+        dealerId: dealer.id,
+        active: true,
+        maxUses: 10, // Default to 10 uses
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      });
+
+      // Return both dealer and buy code information
+      res.status(201).json({ dealer, buyCode });
     } catch (error) {
       console.error('Error creating dealer:', error);
       res.status(500).json({ message: "Failed to create dealer" });
