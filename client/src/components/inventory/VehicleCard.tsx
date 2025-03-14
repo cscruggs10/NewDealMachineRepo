@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { OfferForm } from "../forms/OfferForm";
 import { formatCurrency } from "@/lib/utils";
-import { VideoIcon, Copy, ExternalLink } from "lucide-react";
+import { VideoIcon, Copy, ExternalLink, Play } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -18,7 +18,7 @@ interface VehicleCardProps {
 
 export function VehicleCard({ vehicle }: VehicleCardProps) {
   const { toast } = useToast();
-  const [isBuyDialogOpen, setIsBuyDialogOpen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const verifyBuyCodeMutation = useMutation({
     mutationFn: async (code: string) => {
@@ -44,6 +44,8 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
       });
     },
   });
+
+  const [isBuyDialogOpen, setIsBuyDialogOpen] = useState(false);
 
   const handleBuyNow = async () => {
     const code = prompt("Please enter your buy code:");
@@ -105,10 +107,27 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
         {vehicle.videos?.[0] && (
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline" className="w-full">
-                <VideoIcon className="mr-2 h-4 w-4" />
-                Watch Video Walkthrough
-              </Button>
+              <div className="relative aspect-video rounded-lg overflow-hidden bg-muted cursor-pointer group">
+                {/* Video preview/poster */}
+                <video 
+                  src={vehicle.videos[0]}
+                  className="w-full h-full object-cover"
+                  preload="metadata"
+                  playsInline
+                  muted
+                  onLoadedMetadata={(e) => {
+                    // Seek to the first frame to generate preview
+                    const video = e.target as HTMLVideoElement;
+                    video.currentTime = 0;
+                  }}
+                />
+                {/* Play button overlay */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                  <div className="rounded-full bg-white/90 p-3 group-hover:scale-110 transition-transform">
+                    <Play className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </div>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[800px]">
               <DialogHeader>
