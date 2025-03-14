@@ -49,7 +49,7 @@ export function DealerManagement() {
     },
   });
 
-  const { data: dealers, isLoading } = useQuery<Dealer[]>({
+  const { data: dealers } = useQuery<Dealer[]>({
     queryKey: ["/api/dealers"],
   });
 
@@ -57,11 +57,12 @@ export function DealerManagement() {
     mutationFn: async (data: z.infer<typeof dealerFormSchema>) => {
       return apiRequest("POST", "/api/dealers", data);
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
+      const data = await response.json();
       queryClient.invalidateQueries({ queryKey: ["/api/dealers"] });
       setIsAddingDealer(false);
       form.reset();
-      setNewBuyCode(response.buyCode);
+      setNewBuyCode(data.buyCode);
       toast({
         title: "Success",
         description: "Dealer added successfully",
@@ -92,10 +93,6 @@ export function DealerManagement() {
   const onSubmit = (data: z.infer<typeof dealerFormSchema>) => {
     createDealerMutation.mutate(data);
   };
-
-  if (isLoading) {
-    return <div>Loading dealers...</div>;
-  }
 
   return (
     <Card>
