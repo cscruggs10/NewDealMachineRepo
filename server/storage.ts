@@ -128,10 +128,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateBuyCodeUsage(id: number): Promise<BuyCode> {
+    // First get the current usage count
+    const [current] = await db
+      .select()
+      .from(buyCodes)
+      .where(eq(buyCodes.id, id));
+
+    // Then increment it
     const [buyCode] = await db
       .update(buyCodes)
       .set({ 
-        usageCount: (x => x + 1)
+        usageCount: (current?.usageCount || 0) + 1
       })
       .where(eq(buyCodes.id, id))
       .returning();
@@ -191,7 +198,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return offer;
   }
-  async getDealerByDealerName(dealerName: string): Promise<Dealer | undefined> { // Add this method to the DatabaseStorage class implementation
+  async getDealerByDealerName(dealerName: string): Promise<Dealer | undefined> { 
     const [dealer] = await db.select().from(dealers).where(eq(dealers.dealerName, dealerName));
     return dealer;
   }

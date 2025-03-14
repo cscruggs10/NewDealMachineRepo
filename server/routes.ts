@@ -176,11 +176,13 @@ export async function registerRoutes(app: Express) {
     }
 
     try {
+      // Get the buy code
       const buyCode = await storage.getBuyCode(code);
+      console.log('Found buy code:', buyCode); // Debug log
+
       if (!buyCode || !buyCode.active) {
         return res.status(403).json({ message: "Invalid buy code" });
       }
-
 
       // Get the vehicle
       const vehicle = await storage.getVehicle(vehicleId);
