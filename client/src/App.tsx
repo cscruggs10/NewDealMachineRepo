@@ -30,16 +30,10 @@ function Navigation() {
       <div className="container mx-auto px-4">
         <NavigationMenu className="h-16">
           <NavigationMenuList className="gap-6">
-            <NavigationMenuItem className="flex-shrink-0">
+            <NavigationMenuItem>
               <Link href="/">
-                <NavigationMenuLink className="flex items-center">
-                  <div className="w-40 h-10 flex items-center">
-                    <img 
-                      src="/assets/deal-machine-logo.jpg" 
-                      alt="Deal Machine Logo" 
-                      className="h-8 w-auto"
-                    />
-                  </div>
+                <NavigationMenuLink className="text-xl font-semibold">
+                  Deal Machine
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
