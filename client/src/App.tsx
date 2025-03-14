@@ -15,7 +15,6 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
 function Navigation() {
-  // Check if admin is logged in
   const { data: adminAuth } = useQuery({
     queryKey: ["/api/admin/check"],
     queryFn: async () => {
@@ -26,24 +25,26 @@ function Navigation() {
   });
 
   return (
-    <div className="border-b bg-background">
-      <div className="container mx-auto px-4">
-        <NavigationMenu className="h-16">
-          <NavigationMenuList className="gap-6">
+    <div className="bg-white border-b">
+      <div className="container mx-auto">
+        <NavigationMenu className="h-20">
+          <NavigationMenuList className="flex items-center justify-between w-full px-4">
             <NavigationMenuItem>
               <Link href="/">
-                <NavigationMenuLink className="text-xl font-semibold">
+                <NavigationMenuLink className="text-2xl font-bold text-primary hover:text-primary/90 transition-colors">
                   Deal Machine
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
-            <NavigationMenuItem>
-              <Link href="/dealer/login">
-                <NavigationMenuLink className="text-base">
-                  Dealer Login
-                </NavigationMenuLink>
-              </Link>
-            </NavigationMenuItem>
+            <div className="flex items-center gap-8">
+              <NavigationMenuItem>
+                <Link href="/dealer/login">
+                  <NavigationMenuLink className="text-base font-medium text-gray-600 hover:text-primary transition-colors">
+                    Dealer Login
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+            </div>
           </NavigationMenuList>
         </NavigationMenu>
       </div>
@@ -62,18 +63,20 @@ function Footer() {
   });
 
   return (
-    <footer className="border-t py-4 mt-auto">
-      <div className="container mx-auto px-4 flex justify-center gap-6">
-        <Link href={adminAuth?.authorized ? "/admin" : "/admin/login"}>
-          <a className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Admin
-          </a>
-        </Link>
-        <Link href="/upload">
-          <a className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Upload Vehicle
-          </a>
-        </Link>
+    <footer className="bg-gray-50 py-6 mt-auto">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-center space-x-8 text-sm">
+          <Link href={adminAuth?.authorized ? "/admin" : "/admin/login"}>
+            <a className="text-gray-500 hover:text-primary transition-colors">
+              Admin
+            </a>
+          </Link>
+          <Link href="/upload">
+            <a className="text-gray-500 hover:text-primary transition-colors">
+              Upload Vehicle
+            </a>
+          </Link>
+        </div>
       </div>
     </footer>
   );
@@ -97,7 +100,7 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-white flex flex-col">
         <Navigation />
         <main className="flex-grow">
           <Router />
