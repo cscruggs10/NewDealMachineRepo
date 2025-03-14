@@ -26,10 +26,16 @@ export default function DealerDashboard() {
       });
   }, [setLocation]);
 
+  // Get dealer info from local storage if available
+  const dealerInfo = JSON.parse(localStorage.getItem('dealerInfo') || '{}');
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold">Dealer Dashboard</h1>
+        <div className="border-b pb-4">
+          <h1 className="text-3xl font-bold">Welcome, {dealerInfo.dealerName || 'Dealer'}</h1>
+          <p className="text-muted-foreground mt-1">Manage your transactions and buy codes</p>
+        </div>
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Buy Codes */}
@@ -50,9 +56,6 @@ export default function DealerDashboard() {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-mono text-lg">{code.code}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Uses: {code.usageCount}/{code.maxUses || '∞'}
-                          </p>
                         </div>
                         <div className={`text-sm ${code.active ? 'text-green-600' : 'text-red-600'}`}>
                           {code.active ? 'Active' : 'Inactive'}

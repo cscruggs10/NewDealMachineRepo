@@ -39,7 +39,10 @@ export default function DealerLogin() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Store dealer info in localStorage
+      localStorage.setItem('dealerInfo', JSON.stringify(data));
+
       toast({
         title: "Success",
         description: "Logged in successfully",
