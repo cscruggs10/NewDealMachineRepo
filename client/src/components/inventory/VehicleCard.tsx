@@ -6,6 +6,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { OfferForm } from "../forms/OfferForm";
 import { formatCurrency } from "@/lib/utils";
 import { VideoIcon, Copy } from "lucide-react";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -13,33 +17,37 @@ interface VehicleCardProps {
 
 export function VehicleCard({ vehicle }: VehicleCardProps) {
   const { toast } = useToast();
+  const [isBuyDialogOpen, setIsBuyDialogOpen] = useState(false);
 
-  const handleBuyNow = async () => {
-    const code = prompt("Please enter your buy code:");
-    if (!code) return;
-
-    try {
-      const res = await fetch("/api/verify-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+  const verifyBuyCodeMutation = useMutation({
+    mutationFn: async (code: string) => {
+      return apiRequest("POST", "/api/verify-code", {
+        code,
+        vehicleId: vehicle.id,
       });
-
-      if (!res.ok) {
-        throw new Error("Invalid buy code");
-      }
-
+    },
+    onSuccess: () => {
       toast({
         title: "Success!",
-        description: "A sales representative will contact you shortly.",
+        description: "Vehicle purchase initiated. Our team will contact you shortly.",
       });
-    } catch (error) {
+      setIsBuyDialogOpen(false);
+      // Invalidate vehicles query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
+    },
+    onError: () => {
       toast({
         title: "Error",
         description: "Invalid buy code. Please try again.",
         variant: "destructive",
       });
-    }
+    },
+  });
+
+  const handleBuyNow = async () => {
+    const code = prompt("Please enter your buy code:");
+    if (!code) return;
+    verifyBuyCodeMutation.mutate(code);
   };
 
   const copyVin = async () => {
@@ -57,6 +65,11 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
       });
     }
   };
+
+  // Only show available vehicles
+  if (vehicle.status === 'sold') {
+    return null;
+  }
 
   // Ensure we display the year, make, model prominently
   const vehicleTitle = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
@@ -130,8 +143,9 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
             variant="default" 
             className="w-full"
             onClick={handleBuyNow}
+            disabled={verifyBuyCodeMutation.isPending}
           >
-            Buy Now
+            {verifyBuyCodeMutation.isPending ? "Processing..." : "Buy Now"}
           </Button>
 
           <Dialog>

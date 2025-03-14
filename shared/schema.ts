@@ -24,8 +24,10 @@ export const vehicles = pgTable("vehicles", {
   description: text("description"),
   condition: text("condition"),
   videos: text("videos").array(),
-  status: text("status").notNull().default('pending'),
+  status: text("status").notNull().default('pending'), // 'pending', 'active', 'sold'
   inQueue: boolean("in_queue").notNull().default(true),
+  billOfSale: text("bill_of_sale"), // URL to uploaded bill of sale document
+  isPaid: boolean("is_paid").default(false),
 });
 
 export const buyCodes = pgTable("buy_codes", {
@@ -45,8 +47,10 @@ export const transactions = pgTable("transactions", {
   dealerId: integer("dealer_id").notNull(),
   buyCodeId: integer("buy_code_id").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").notNull().default('completed'),
+  status: text("status").notNull().default('pending'), // 'pending', 'completed'
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  isPaid: boolean("is_paid").default(false),
+  billOfSale: text("bill_of_sale"), // URL to uploaded bill of sale document
 });
 
 export const offers = pgTable("offers", {
@@ -58,6 +62,7 @@ export const offers = pgTable("offers", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Schema definitions for inserts
 export const insertDealerSchema = createInsertSchema(dealers).omit({
   id: true,
   active: true,
@@ -76,6 +81,8 @@ export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({
   price: true,
   condition: true,
   description: true,
+  billOfSale: true,
+  isPaid: true,
 }).extend({
   vin: z.string().length(17, "Please enter the full 17-character VIN"),
   videos: z.array(z.string()).optional(),
@@ -84,7 +91,9 @@ export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({
   id: true,
   status: true,
-  inQueue: true
+  inQueue: true,
+  billOfSale: true,
+  isPaid: true,
 }).extend({
   vin: z.string().length(17, "VIN must be 17 characters"),
   make: z.string().min(1, "Make is required"),
@@ -108,7 +117,9 @@ export const insertBuyCodeSchema = createInsertSchema(buyCodes).omit({
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
-  createdAt: true
+  createdAt: true,
+  isPaid: true,
+  billOfSale: true,
 });
 
 export const insertOfferSchema = createInsertSchema(offers).omit({
@@ -117,6 +128,7 @@ export const insertOfferSchema = createInsertSchema(offers).omit({
   createdAt: true
 });
 
+// Types
 export type Vehicle = typeof vehicles.$inferSelect;
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type InitialVehicle = z.infer<typeof createInitialVehicleSchema>;

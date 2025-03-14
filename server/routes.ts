@@ -296,17 +296,27 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "Vehicle not found" });
       }
 
+      if (vehicle.status === 'sold') {
+        return res.status(400).json({ message: "Vehicle is no longer available" });
+      }
+
       // Create transaction
       const transaction = await storage.createTransaction({
         vehicleId,
         dealerId: buyCode.dealerId,
         buyCodeId: buyCode.id,
-        amount: parseFloat(vehicle.price || "0"),
-        status: 'completed'
+        amount: Number(vehicle.price),
+        status: 'pending'
       });
 
       // Update buy code usage
       await storage.updateBuyCodeUsage(buyCode.id);
+
+      // Mark vehicle as sold
+      await storage.updateVehicle(vehicleId, {
+        status: 'sold',
+        inQueue: false
+      });
 
       res.json({ 
         valid: true,
@@ -386,6 +396,59 @@ export async function registerRoutes(app: Express) {
         message: "Failed to upload files",
         error: errorMessage
       });
+    }
+  });
+
+  // Transaction Management
+  app.patch("/api/transactions/:id", async (req, res) => {
+    try {
+      const { status, isPaid } = req.body;
+      const transaction = await storage.updateTransaction(
+        parseInt(req.params.id),
+        { status, isPaid }
+      );
+      res.json(transaction);
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      res.status(500).json({ message: "Failed to update transaction" });
+    }
+  });
+
+  app.get("/api/transactions", async (_req, res) => {
+    try {
+      const transactions = await storage.getTransactions();
+      // Get associated vehicles
+      const transactionsWithVehicles = await Promise.all(
+        transactions.map(async (transaction) => {
+          const vehicle = await storage.getVehicle(transaction.vehicleId);
+          return { ...transaction, vehicle };
+        })
+      );
+      res.json(transactionsWithVehicles);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
+
+  // Bill of Sale upload
+  app.post("/api/transactions/:id/bill-of-sale", upload.single('billOfSale'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+      const transaction = await storage.updateTransaction(
+        parseInt(req.params.id),
+        { billOfSale: fileUrl }
+      );
+
+      res.json(transaction);
+    } catch (error) {
+      console.error('Error uploading bill of sale:', error);
+      res.status(500).json({ message: "Failed to upload bill of sale" });
     }
   });
 

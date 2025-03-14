@@ -31,6 +31,8 @@ export interface IStorage {
   // Transactions
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getDealerTransactions(dealerId: number): Promise<Transaction[]>;
+  getTransactions(): Promise<Transaction[]>;
+  updateTransaction(id: number, update: Partial<Transaction>): Promise<Transaction>;
 
   // Offers
   getOffers(vehicleId: number): Promise<Offer[]>;
@@ -127,6 +129,19 @@ export class DatabaseStorage implements IStorage {
 
   async getDealerTransactions(dealerId: number): Promise<Transaction[]> {
     return db.select().from(transactions).where(eq(transactions.dealerId, dealerId));
+  }
+
+  async getTransactions(): Promise<Transaction[]> {
+    return db.select().from(transactions);
+  }
+
+  async updateTransaction(id: number, update: Partial<Transaction>): Promise<Transaction> {
+    const [transaction] = await db
+      .update(transactions)
+      .set(update)
+      .where(eq(transactions.id, id))
+      .returning();
+    return transaction;
   }
 
   // Offer methods
