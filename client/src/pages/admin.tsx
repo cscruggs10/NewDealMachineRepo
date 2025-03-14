@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { RefreshCw } from "lucide-react";
+import { ListingManagement } from "@/components/admin/ListingManagement";
 
 export default function Admin() {
   const [, setLocation] = useLocation();
@@ -127,6 +128,7 @@ export default function Admin() {
         <Tabs defaultValue="complete">
           <TabsList>
             <TabsTrigger value="complete">Complete Vehicle</TabsTrigger>
+            <TabsTrigger value="listings">Manage Listings</TabsTrigger>
             <TabsTrigger value="dealers">Dealers</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="offers">Offers</TabsTrigger>
@@ -135,6 +137,10 @@ export default function Admin() {
 
           <TabsContent value="complete" className="mt-6">
             <VehicleComplete />
+          </TabsContent>
+
+          <TabsContent value="listings" className="mt-6">
+            <ListingManagement />
           </TabsContent>
 
           <TabsContent value="dealers" className="mt-6">

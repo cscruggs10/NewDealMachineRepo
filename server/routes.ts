@@ -213,6 +213,28 @@ export async function registerRoutes(app: Express) {
     res.json(vehicle);
   });
 
+  // Update vehicle status route
+  app.patch("/api/vehicles/:id", requireAdmin, async (req, res) => {
+    try {
+      const { status, inQueue, ...otherUpdates } = req.body;
+
+      // Validate status
+      if (status && !['active', 'sold', 'removed'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+
+      const vehicle = await storage.updateVehicle(
+        parseInt(req.params.id),
+        { status, inQueue, ...otherUpdates }
+      );
+
+      res.json(vehicle);
+    } catch (error) {
+      console.error('Error updating vehicle:', error);
+      res.status(500).json({ message: "Failed to update vehicle" });
+    }
+  });
+
   // Buy code verification with transaction creation
   app.post("/api/verify-code", async (req, res) => {
     const { code, vehicleId } = req.body;
