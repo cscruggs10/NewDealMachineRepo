@@ -89,6 +89,20 @@ async function decodeVIN(vin: string) {
 }
 
 
+async function requireAdmin(req: Request, res: Response, next: Function) {
+  const adminEmail = req.session.adminEmail;
+  if (!adminEmail) {
+    return res.status(401).json({ message: "Admin authentication required" });
+  }
+
+  const admin = await storage.getAdminByEmail(adminEmail);
+  if (!admin) {
+    return res.status(403).json({ message: "Not authorized as admin" });
+  }
+
+  next();
+}
+
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
@@ -105,8 +119,39 @@ export async function registerRoutes(app: Express) {
     })
   );
 
+  // Admin authentication routes
+  app.post("/api/admin/login", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      const admin = await storage.getAdminByEmail(email);
+      if (!admin) {
+        return res.status(401).json({ message: "Not authorized as admin" });
+      }
+
+      // Set admin session
+      req.session.adminEmail = email;
+
+      res.json({ message: "Admin login successful" });
+    } catch (error) {
+      console.error('Admin login error:', error);
+      res.status(500).json({ message: "Admin login failed" });
+    }
+  });
+
+  app.post("/api/admin/logout", (req, res) => {
+    req.session.adminEmail = undefined;
+    res.json({ message: "Admin logged out" });
+  });
+
+  // Protect admin routes
+  app.get("/api/admin/check", requireAdmin, (req, res) => {
+    res.json({ authorized: true });
+  });
+
+
   // Admin dealer management routes
-  app.post("/api/dealers", async (req, res) => {
+  app.post("/api/dealers", requireAdmin, async (req, res) => {
     try {
       const result = insertDealerSchema.safeParse(req.body);
       if (!result.success) {
@@ -132,7 +177,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/dealers", async (_req, res) => {
+  app.get("/api/dealers", requireAdmin, async (_req, res) => {
     try {
       const dealers = await storage.getDealers();
       res.json(dealers);
@@ -142,7 +187,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/dealers/:id", async (req, res) => {
+  app.patch("/api/dealers/:id", requireAdmin, async (req, res) => {
     try {
       const { active } = req.body;
       const dealer = await storage.updateDealer(
@@ -340,7 +385,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Transaction management
-  app.patch("/api/transactions/:id", async (req, res) => {
+  app.patch("/api/transactions/:id", requireAdmin, async (req, res) => {
     try {
       const { status, isPaid } = req.body;
       const transaction = await storage.updateTransaction(
@@ -354,7 +399,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/transactions", async (_req, res) => {
+  app.get("/api/transactions", requireAdmin, async (_req, res) => {
     try {
       const transactions = await storage.getTransactions();
       const transactionsWithDetails = await Promise.all(

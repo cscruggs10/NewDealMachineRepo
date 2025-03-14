@@ -4,7 +4,9 @@ import {
   type Offer, type InsertOffer,
   type Dealer, type InsertDealer,
   type Transaction, type InsertTransaction,
-  vehicles, buyCodes, offers, dealers, transactions
+  vehicles, buyCodes, offers, dealers, transactions,
+  type AdminUser, type InsertAdminUser,
+  adminUsers,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -23,14 +25,14 @@ export interface IStorage {
   getDealerById(id: number): Promise<Dealer | undefined>;
   getDealers(): Promise<Dealer[]>;
   updateDealer(id: number, update: Partial<Dealer>): Promise<Dealer>;
-  getDealerByDealerName(dealerName: string): Promise<Dealer | undefined>; // Add this method to the IStorage interface
+  getDealerByDealerName(dealerName: string): Promise<Dealer | undefined>;
 
   // Buy Codes
   getBuyCode(code: string): Promise<BuyCode | undefined>;
   createBuyCode(buyCode: InsertBuyCode): Promise<BuyCode>;
   updateBuyCodeUsage(id: number): Promise<BuyCode>;
   getDealerBuyCodes(dealerId: number): Promise<BuyCode[]>;
-  getAllBuyCodes(): Promise<BuyCode[]>; // Added method
+  getAllBuyCodes(): Promise<BuyCode[]>;
 
   // Transactions
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
@@ -43,10 +45,14 @@ export interface IStorage {
   getDealerOffers(dealerId: number): Promise<Offer[]>;
   createOffer(offer: InsertOffer): Promise<Offer>;
   updateOfferStatus(id: number, status: string): Promise<Offer>;
+
+  // Admin Users
+  getAdminByEmail(email: string): Promise<AdminUser | undefined>;
+  createAdminUser(admin: InsertAdminUser): Promise<AdminUser>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // Existing vehicle methods
+  // Vehicles
   async getVehicles(): Promise<Vehicle[]> {
     return db.select().from(vehicles);
   }
@@ -75,7 +81,7 @@ export class DatabaseStorage implements IStorage {
     return vehicle;
   }
 
-  // Dealer methods
+  // Dealers
   async createDealer(insertDealer: InsertDealer): Promise<Dealer> {
     try {
       console.log('Creating dealer with data:', insertDealer);
@@ -111,7 +117,12 @@ export class DatabaseStorage implements IStorage {
     return dealer;
   }
 
-  // Buy code methods
+  async getDealerByDealerName(dealerName: string): Promise<Dealer | undefined> { 
+    const [dealer] = await db.select().from(dealers).where(eq(dealers.dealerName, dealerName));
+    return dealer;
+  }
+
+  // Buy Codes
   async getBuyCode(code: string): Promise<BuyCode | undefined> {
     const [buyCode] = await db
       .select()
@@ -153,7 +164,7 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(buyCodes);
   }
 
-  // Transaction methods
+  // Transactions
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
     const [transaction] = await db.insert(transactions).values(insertTransaction).returning();
     return transaction;
@@ -176,7 +187,7 @@ export class DatabaseStorage implements IStorage {
     return transaction;
   }
 
-  // Offer methods
+  // Offers
   async getOffers(vehicleId: number): Promise<Offer[]> {
     return db.select().from(offers).where(eq(offers.vehicleId, vehicleId));
   }
@@ -198,9 +209,16 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return offer;
   }
-  async getDealerByDealerName(dealerName: string): Promise<Dealer | undefined> { 
-    const [dealer] = await db.select().from(dealers).where(eq(dealers.dealerName, dealerName));
-    return dealer;
+
+  // Admin Users
+  async getAdminByEmail(email: string): Promise<AdminUser | undefined> {
+    const [admin] = await db.select().from(adminUsers).where(eq(adminUsers.email, email));
+    return admin;
+  }
+
+  async createAdminUser(admin: InsertAdminUser): Promise<AdminUser> {
+    const [newAdmin] = await db.insert(adminUsers).values(admin).returning();
+    return newAdmin;
   }
 }
 

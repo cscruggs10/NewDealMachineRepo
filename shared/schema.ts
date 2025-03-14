@@ -71,6 +71,12 @@ export const offers = pgTable("offers", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const adminUsers = pgTable("admin_users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertDealerSchema = createInsertSchema(dealers).omit({
   id: true,
   active: true,
@@ -136,6 +142,11 @@ export const insertOfferSchema = createInsertSchema(offers).omit({
   createdAt: true
 });
 
+export const insertAdminSchema = createInsertSchema(adminUsers).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type Vehicle = typeof vehicles.$inferSelect;
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type InitialVehicle = z.infer<typeof createInitialVehicleSchema>;
@@ -147,3 +158,5 @@ export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Offer = typeof offers.$inferSelect;
 export type InsertOffer = z.infer<typeof insertOfferSchema>;
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = z.infer<typeof insertAdminSchema>;
