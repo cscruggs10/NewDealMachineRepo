@@ -131,7 +131,7 @@ export class DatabaseStorage implements IStorage {
     const [buyCode] = await db
       .update(buyCodes)
       .set({ 
-        usageCount: db.raw('usage_count + 1')
+        usageCount: (x => x + 1)
       })
       .where(eq(buyCodes.id, id))
       .returning();
