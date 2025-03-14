@@ -43,11 +43,11 @@ export const buyCodes = pgTable("buy_codes", {
   id: serial("id").primaryKey(),
   code: text("code").notNull().unique(),
   dealerId: integer("dealer_id").notNull(),
+  maxUses: integer("max_uses"),
+  usageCount: integer("usage_count").notNull().default(0),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at"),
-  usageCount: integer("usage_count").notNull().default(0),
-  maxUses: integer("max_uses"),
 });
 
 export const transactions = pgTable("transactions", {
@@ -118,9 +118,9 @@ export const insertVehicleSchema = createInsertSchema(vehicles).omit({
 
 export const insertBuyCodeSchema = createInsertSchema(buyCodes).omit({
   id: true,
+  usageCount: true,
   active: true,
   createdAt: true,
-  usageCount: true
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
