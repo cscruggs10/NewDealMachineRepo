@@ -4,14 +4,11 @@ import { Button } from "@/components/ui/button";
 import { LayoutGrid, List, Search } from "lucide-react";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [certificationFilter, setCertificationFilter] = useState<string>("all");
-  const [filtersEnabled, setFiltersEnabled] = useState(true);
   const [sortBy, setSortBy] = useState("newest");
 
   return (
@@ -59,51 +56,39 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Filters toggle */}
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="filters-toggle"
-              checked={filtersEnabled}
-              onCheckedChange={setFiltersEnabled}
-            />
-            <Label htmlFor="filters-toggle">Enable Filters</Label>
-          </div>
-
           {/* Filters Section */}
-          <div className={`space-y-4 ${!filtersEnabled && 'opacity-50 pointer-events-none'}`}>
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Certification Filter */}
-              <Select value={certificationFilter} onValueChange={setCertificationFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by certification" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Listings</SelectItem>
-                  <SelectItem value="Deal Machine Certified">Deal Machine Certified</SelectItem>
-                  <SelectItem value="Auction Certified">Auction Certified</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Certification Filter */}
+            <Select value={certificationFilter} onValueChange={setCertificationFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by certification" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Listings</SelectItem>
+                <SelectItem value="Deal Machine Certified">Deal Machine Certified</SelectItem>
+                <SelectItem value="Auction Certified">Auction Certified</SelectItem>
+              </SelectContent>
+            </Select>
 
-              {/* Sort Options */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sort by..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  <SelectItem value="mileage-low">Mileage: Low to High</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Sort Options */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="price-low">Price: Low to High</SelectItem>
+                <SelectItem value="price-high">Price: High to Low</SelectItem>
+                <SelectItem value="mileage-low">Mileage: Low to High</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         <VehicleGrid
           searchQuery={searchQuery}
           viewMode={viewMode}
-          certificationFilter={filtersEnabled ? certificationFilter : "all"}
+          certificationFilter={certificationFilter}
           sortBy={sortBy}
         />
       </main>
