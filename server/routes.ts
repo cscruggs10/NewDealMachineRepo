@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema, createInitialVehicleSchema, insertDealerSchema } from "@shared/schema";
@@ -7,7 +7,6 @@ import path from "path";
 import express from 'express';
 import fs from 'fs';
 import fetch from 'node-fetch';
-import bcrypt from 'bcryptjs';
 import session from 'express-session';
 
 // Ensure uploads directory exists
@@ -19,34 +18,29 @@ if (!fs.existsSync(uploadDir)) {
 // Configure multer for disk storage
 const upload = multer({ 
   storage: multer.diskStorage({
-    destination: (_req, _file, cb) => {
+    destination: (req: Express.Request, file: Express.Multer.File, cb: Function) => {
       cb(null, uploadDir);
     },
-    filename: (_req, file, cb) => {
-      // Create a unique filename with timestamp
+    filename: (req: Express.Request, file: Express.Multer.File, cb: Function) => {
       const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
       cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
     }
   }),
-  fileFilter: (_req, file, cb) => {
-    // Accept common video formats including iOS formats
+  fileFilter: (req: Express.Request, file: Express.Multer.File, cb: Function) => {
     const allowedTypes = [
       'video/mp4',
-      'video/quicktime', // For .mov files from iOS
-      'video/x-m4v',     // For iOS M4V format
-      'video/webm'
+      'video/quicktime',
+      'video/x-m4v',
+      'video/webm',
+      'application/pdf',
+      'image/jpeg',
+      'image/png'
     ];
-
-    console.log('Received file:', {
-      filename: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size
-    });
 
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error(`Unsupported video format: ${file.mimetype}. Allowed formats: ${allowedTypes.join(', ')}`));
+      cb(new Error(`Unsupported file format: ${file.mimetype}`));
     }
   },
   limits: {
@@ -87,7 +81,6 @@ async function decodeVIN(vin: string) {
 declare module 'express-session' {
   interface SessionData {
     dealerId?: number;
-    isAdmin?: boolean;
   }
 }
 
@@ -100,90 +93,58 @@ export async function registerRoutes(app: Express) {
   // Add session middleware
   app.use(
     session({
-      secret: 'your-secret-key', // **REPLACE with a strong secret key**
+      secret: 'your-secret-key',
       resave: false,
       saveUninitialized: false,
       cookie: { secure: process.env.NODE_ENV === 'production' }
     })
   );
 
-  // Dealer authentication routes
-  app.post("/api/auth/register", async (req, res) => {
+  // Public vehicle routes
+  app.get("/api/vehicles", async (_req, res) => {
+    const vehicles = await storage.getVehicles();
+    res.json(vehicles);
+  });
+
+  app.get("/api/vehicles/:id", async (req, res) => {
+    const vehicle = await storage.getVehicle(parseInt(req.params.id));
+    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
+    res.json(vehicle);
+  });
+
+  // Admin vehicle routes
+  app.post("/api/vehicles", async (req, res) => {
+    const result = createInitialVehicleSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ message: result.error.message });
+    }
+
     try {
-      const result = insertDealerSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: result.error.message });
-      }
+      const vehicleInfo = await decodeVIN(result.data.vin);
+      console.log('Creating vehicle with info:', vehicleInfo);
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(result.data.password, 10);
-
-      // Create dealer with hashed password
-      const dealer = await storage.createDealer({
+      const vehicle = await storage.createVehicle({
         ...result.data,
-        password: hashedPassword
+        year: parseInt(vehicleInfo.year),
+        make: vehicleInfo.make,
+        model: vehicleInfo.model,
+        trim: vehicleInfo.trim,
       });
 
-      // Remove password from response
-      const { password, ...dealerWithoutPassword } = dealer;
-      res.status(201).json(dealerWithoutPassword);
+      res.status(201).json(vehicle);
     } catch (error) {
-      console.error('Error registering dealer:', error);
-      res.status(500).json({ message: "Failed to register dealer" });
+      console.error('Error creating vehicle:', error);
+      res.status(500).json({ message: "Failed to create vehicle" });
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password required" });
-      }
-
-      const dealer = await storage.getDealerByUsername(username);
-      if (!dealer || !dealer.active) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      const validPassword = await bcrypt.compare(password, dealer.password);
-      if (!validPassword) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      // Set session
-      req.session.dealerId = dealer.id;
-
-      // Remove password from response
-      const { password: _, ...dealerWithoutPassword } = dealer;
-      res.json(dealerWithoutPassword);
-    } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ message: "Login failed" });
-    }
+  app.patch("/api/vehicles/:id", async (req, res) => {
+    const vehicle = await storage.updateVehicle(
+      parseInt(req.params.id),
+      req.body
+    );
+    res.json(vehicle);
   });
-
-  app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy(err => {
-      if (err) {
-        console.error('Logout error:', err);
-        return res.status(500).json({ message: "Logout failed" });
-      }
-      res.json({ message: "Logged out successfully" });
-    });
-  });
-
-  // Middleware to check if dealer is authenticated
-  const requireDealer = async (req: any, res: any, next: any) => {
-    if (!req.session.dealerId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    const dealer = await storage.getDealerById(req.session.dealerId);
-    if (!dealer || !dealer.active) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    req.dealer = dealer;
-    next();
-  };
 
   // Admin dealer management routes
   app.post("/api/dealers", async (req, res) => {
@@ -225,90 +186,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-
-  // Protected dealer routes
-  app.get("/api/dealer/buycodes", requireDealer, async (req: any, res) => {
-    try {
-      const buyCodes = await storage.getDealerBuyCodes(req.dealer.id);
-      res.json(buyCodes);
-    } catch (error) {
-      console.error('Error fetching buy codes:', error);
-      res.status(500).json({ message: "Failed to fetch buy codes" });
-    }
-  });
-
-  app.get("/api/dealer/transactions", requireDealer, async (req: any, res) => {
-    try {
-      const transactions = await storage.getDealerTransactions(req.dealer.id);
-      res.json(transactions);
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-      res.status(500).json({ message: "Failed to fetch transactions" });
-    }
-  });
-
-  app.get("/api/dealer/offers", requireDealer, async (req: any, res) => {
-    try {
-      const offers = await storage.getDealerOffers(req.dealer.id);
-      res.json(offers);
-    } catch (error) {
-      console.error('Error fetching offers:', error);
-      res.status(500).json({ message: "Failed to fetch offers" });
-    }
-  });
-
-  // Public vehicle routes
-  app.get("/api/vehicles", async (_req, res) => {
-    const vehicles = await storage.getVehicles();
-    res.json(vehicles);
-  });
-
-  app.get("/api/vehicles/:id", async (req, res) => {
-    const vehicle = await storage.getVehicle(parseInt(req.params.id));
-    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
-    res.json(vehicle);
-  });
-
-  // Admin vehicle routes
-  app.post("/api/vehicles", async (req, res) => {
-    const result = createInitialVehicleSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: result.error.message });
-    }
-
-    try {
-      // Get the decoded VIN data
-      const vehicleInfo = await decodeVIN(result.data.vin);
-      console.log('Creating vehicle with info:', vehicleInfo);
-
-      // Create vehicle with both decoded info and provided data
-      const vehicle = await storage.createVehicle({
-        ...result.data,
-        year: parseInt(vehicleInfo.year),
-        make: vehicleInfo.make,
-        model: vehicleInfo.model,
-        trim: vehicleInfo.trim,
-        status: 'pending',
-        inQueue: true,
-      });
-
-      res.status(201).json(vehicle);
-    } catch (error) {
-      console.error('Error creating vehicle:', error);
-      res.status(500).json({ message: "Failed to create vehicle" });
-    }
-  });
-
-  app.patch("/api/vehicles/:id", async (req, res) => {
-    const vehicle = await storage.updateVehicle(
-      parseInt(req.params.id),
-      req.body
-    );
-    res.json(vehicle);
-  });
-
-
-  // Update the buy code verification to create a transaction
+  // Buy code verification
   app.post("/api/verify-code", async (req, res) => {
     const { code, vehicleId } = req.body;
     if (!code || !vehicleId) {
@@ -331,7 +209,7 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ message: "Buy code has expired" });
       }
 
-      // Get the vehicle to create transaction
+      // Get the vehicle
       const vehicle = await storage.getVehicle(vehicleId);
       if (!vehicle) {
         return res.status(404).json({ message: "Vehicle not found" });
@@ -366,6 +244,59 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Error verifying buy code:', error);
       res.status(500).json({ message: "Failed to verify buy code" });
+    }
+  });
+
+  // Transaction Management
+  app.patch("/api/transactions/:id", async (req, res) => {
+    try {
+      const { status, isPaid } = req.body;
+      const transaction = await storage.updateTransaction(
+        parseInt(req.params.id),
+        { status, isPaid }
+      );
+      res.json(transaction);
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      res.status(500).json({ message: "Failed to update transaction" });
+    }
+  });
+
+  app.get("/api/transactions", async (_req, res) => {
+    try {
+      const transactions = await storage.getTransactions();
+      // Get associated vehicles
+      const transactionsWithVehicles = await Promise.all(
+        transactions.map(async (transaction) => {
+          const vehicle = await storage.getVehicle(transaction.vehicleId);
+          return { ...transaction, vehicle };
+        })
+      );
+      res.json(transactionsWithVehicles);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
+
+  // Bill of Sale upload
+  app.post("/api/transactions/:id/bill-of-sale", upload.single('billOfSale'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+      const transaction = await storage.updateTransaction(
+        parseInt(req.params.id),
+        { billOfSale: fileUrl }
+      );
+
+      res.json(transaction);
+    } catch (error) {
+      console.error('Error uploading bill of sale:', error);
+      res.status(500).json({ message: "Failed to upload bill of sale" });
     }
   });
 
@@ -440,58 +371,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Transaction Management
-  app.patch("/api/transactions/:id", async (req, res) => {
-    try {
-      const { status, isPaid } = req.body;
-      const transaction = await storage.updateTransaction(
-        parseInt(req.params.id),
-        { status, isPaid }
-      );
-      res.json(transaction);
-    } catch (error) {
-      console.error('Error updating transaction:', error);
-      res.status(500).json({ message: "Failed to update transaction" });
-    }
-  });
-
-  app.get("/api/transactions", async (_req, res) => {
-    try {
-      const transactions = await storage.getTransactions();
-      // Get associated vehicles
-      const transactionsWithVehicles = await Promise.all(
-        transactions.map(async (transaction) => {
-          const vehicle = await storage.getVehicle(transaction.vehicleId);
-          return { ...transaction, vehicle };
-        })
-      );
-      res.json(transactionsWithVehicles);
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-      res.status(500).json({ message: "Failed to fetch transactions" });
-    }
-  });
-
-  // Bill of Sale upload
-  app.post("/api/transactions/:id/bill-of-sale", upload.single('billOfSale'), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
-      }
-
-      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-
-      const transaction = await storage.updateTransaction(
-        parseInt(req.params.id),
-        { billOfSale: fileUrl }
-      );
-
-      res.json(transaction);
-    } catch (error) {
-      console.error('Error uploading bill of sale:', error);
-      res.status(500).json({ message: "Failed to upload bill of sale" });
-    }
-  });
 
   return httpServer;
 }
