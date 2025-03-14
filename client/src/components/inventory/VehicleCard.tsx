@@ -5,11 +5,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { OfferForm } from "../forms/OfferForm";
 import { formatCurrency } from "@/lib/utils";
-import { VideoIcon, Copy } from "lucide-react";
+import { VideoIcon, Copy, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { Link } from "wouter";
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -77,7 +78,14 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle className="text-lg">{vehicleTitle}</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">{vehicleTitle}</CardTitle>
+          <Link href={`/vehicle/${vehicle.id}`}>
+            <Button variant="ghost" size="icon" title="View Details">
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
         <div className="flex items-center gap-2 mt-2 bg-muted/50 p-2 rounded-md">
           <div className="flex-1">
             <p className="text-sm font-medium">VIN:</p>
