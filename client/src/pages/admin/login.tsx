@@ -11,8 +11,21 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 
+const ALLOWED_ADMINS = [
+  'corey@ifinancememphis.com',
+  'jon@ifinancememphis.com',
+  'sam@ifinancememphis.com',
+  'kyle@ifinancememphis.com',
+  'cameron@ifinancememphis.com',
+  'greg@ifinancememphis.com'
+];
+
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
+  email: z.string()
+    .email("Please enter a valid email")
+    .refine(email => ALLOWED_ADMINS.includes(email.toLowerCase()), {
+      message: "Not authorized as admin"
+    }),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
