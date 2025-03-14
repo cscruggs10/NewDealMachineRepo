@@ -11,10 +11,10 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [certificationFilter, setCertificationFilter] = useState<string>("all");
 
-  // New filter states
-  const [priceRange, setPriceRange] = useState([0, 100000]);
+  // New filter states with adjusted ranges
+  const [priceRange, setPriceRange] = useState([0, 25000]);
   const [mileageRange, setMileageRange] = useState([0, 200000]);
-  const [yearRange, setYearRange] = useState([1990, new Date().getFullYear()]);
+  const [yearRange, setYearRange] = useState([2006, 2025]);
   const [sortBy, setSortBy] = useState("newest");
 
   return (
@@ -98,8 +98,8 @@ export default function Home() {
             </div>
             <Slider
               min={0}
-              max={100000}
-              step={1000}
+              max={25000}
+              step={500}
               value={priceRange}
               onValueChange={setPriceRange}
               className="w-full"
@@ -129,8 +129,8 @@ export default function Home() {
               <span>{yearRange[0]} - {yearRange[1]}</span>
             </div>
             <Slider
-              min={1990}
-              max={new Date().getFullYear()}
+              min={2006}
+              max={2025}
               step={1}
               value={yearRange}
               onValueChange={setYearRange}
