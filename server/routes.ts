@@ -108,6 +108,8 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: result.error.message });
       }
 
+      console.log('Creating dealer with data:', result.data); // Debug log
+
       // Create dealer
       const dealer = await storage.createDealer(result.data);
 
@@ -124,7 +126,7 @@ export async function registerRoutes(app: Express) {
       res.status(201).json({ dealer, buyCode });
     } catch (error) {
       console.error('Error creating dealer:', error);
-      res.status(500).json({ message: "Failed to create dealer" });
+      res.status(500).json({ message: "Failed to create dealer", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 

@@ -7,7 +7,7 @@ import {
   vehicles, buyCodes, offers, dealers, transactions
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Vehicles
@@ -75,8 +75,15 @@ export class DatabaseStorage implements IStorage {
 
   // Dealer methods
   async createDealer(insertDealer: InsertDealer): Promise<Dealer> {
-    const [dealer] = await db.insert(dealers).values(insertDealer).returning();
-    return dealer;
+    try {
+      console.log('Creating dealer with data:', insertDealer);
+      const [dealer] = await db.insert(dealers).values(insertDealer).returning();
+      console.log('Created dealer:', dealer);
+      return dealer;
+    } catch (error) {
+      console.error('Error in createDealer:', error);
+      throw error;
+    }
   }
 
   async getDealerByUsername(username: string): Promise<Dealer | undefined> {
@@ -108,10 +115,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(buyCodes)
       .where(
-        and(
-          eq(buyCodes.code, code),
-          eq(buyCodes.active, true)
-        )
+        eq(buyCodes.code, code)
       );
     return buyCode;
   }
