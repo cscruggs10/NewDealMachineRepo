@@ -15,9 +15,16 @@ import { z } from "zod";
 
 const dealerFormSchema = z.object({
   dealerName: z.string().min(1, "Dealer name is required"),
+  address: z.string().min(1, "Address is required"),
   contactName: z.string().min(1, "Contact name is required"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(10, "Phone number must be at least 10 digits"),
+  billingContactName: z.string().min(1, "Billing contact name is required"),
+  billingContactEmail: z.string().email("Invalid billing contact email"),
+  billingContactPhone: z.string().min(10, "Billing contact phone must be at least 10 digits"),
+  titleContactName: z.string().min(1, "Title contact name is required"),
+  titleContactEmail: z.string().email("Invalid title contact email"),
+  titleContactPhone: z.string().min(10, "Title contact phone must be at least 10 digits"),
 });
 
 export function DealerManagement() {
@@ -28,9 +35,16 @@ export function DealerManagement() {
     resolver: zodResolver(dealerFormSchema),
     defaultValues: {
       dealerName: "",
+      address: "",
       contactName: "",
       email: "",
       phone: "",
+      billingContactName: "",
+      billingContactEmail: "",
+      billingContactPhone: "",
+      titleContactName: "",
+      titleContactEmail: "",
+      titleContactPhone: "",
     },
   });
 
@@ -89,64 +103,176 @@ export function DealerManagement() {
           <DialogTrigger asChild>
             <Button>Add New Dealer</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add New Dealer</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="dealerName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dealer Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="contactName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input type="tel" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="dealerName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Dealer Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Primary Contact</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="contactName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input type="tel" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Billing Contact</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="billingContactName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="billingContactEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="billingContactPhone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input type="tel" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Title Contact</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="titleContactName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="titleContactEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="titleContactPhone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input type="tel" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
                 <Button 
                   type="submit" 
                   className="w-full"
@@ -164,18 +290,35 @@ export function DealerManagement() {
           {dealers?.map((dealer) => (
             <Card key={dealer.id}>
               <CardContent className="p-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-lg">{dealer.dealerName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Contact: {dealer.contactName}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Email: {dealer.email}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Phone: {dealer.phone}
-                    </p>
+                <div className="flex justify-between items-start">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="font-medium text-lg">{dealer.dealerName}</p>
+                      <p className="text-sm text-muted-foreground">{dealer.address}</p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-8">
+                      <div>
+                        <p className="font-medium">Primary Contact</p>
+                        <p className="text-sm">{dealer.contactName}</p>
+                        <p className="text-sm text-muted-foreground">{dealer.email}</p>
+                        <p className="text-sm text-muted-foreground">{dealer.phone}</p>
+                      </div>
+
+                      <div>
+                        <p className="font-medium">Billing Contact</p>
+                        <p className="text-sm">{dealer.billingContactName}</p>
+                        <p className="text-sm text-muted-foreground">{dealer.billingContactEmail}</p>
+                        <p className="text-sm text-muted-foreground">{dealer.billingContactPhone}</p>
+                      </div>
+
+                      <div>
+                        <p className="font-medium">Title Contact</p>
+                        <p className="text-sm">{dealer.titleContactName}</p>
+                        <p className="text-sm text-muted-foreground">{dealer.titleContactEmail}</p>
+                        <p className="text-sm text-muted-foreground">{dealer.titleContactPhone}</p>
+                      </div>
+                    </div>
                   </div>
                   <Button
                     variant={dealer.active ? "default" : "secondary"}

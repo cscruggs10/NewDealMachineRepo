@@ -5,9 +5,18 @@ import { z } from "zod";
 export const dealers = pgTable("dealers", {
   id: serial("id").primaryKey(),
   dealerName: text("dealer_name").notNull(),
+  address: text("address").notNull(),
   contactName: text("contact_name").notNull(),
   email: text("email").notNull(),
   phone: text("phone").notNull(),
+  // Billing contact information
+  billingContactName: text("billing_contact_name").notNull(),
+  billingContactEmail: text("billing_contact_email").notNull(),
+  billingContactPhone: text("billing_contact_phone").notNull(),
+  // Title contact information
+  titleContactName: text("title_contact_name").notNull(),
+  titleContactEmail: text("title_contact_email").notNull(),
+  titleContactPhone: text("title_contact_phone").notNull(),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
