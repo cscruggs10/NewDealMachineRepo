@@ -21,6 +21,8 @@ export interface IStorage {
   createDealer(dealer: InsertDealer): Promise<Dealer>;
   getDealerByUsername(username: string): Promise<Dealer | undefined>;
   getDealerById(id: number): Promise<Dealer | undefined>;
+  getDealers(): Promise<Dealer[]>;
+  updateDealer(id: number, update: Partial<Dealer>): Promise<Dealer>;
 
   // Buy Codes
   getBuyCode(code: string): Promise<BuyCode | undefined>;
@@ -84,6 +86,19 @@ export class DatabaseStorage implements IStorage {
 
   async getDealerById(id: number): Promise<Dealer | undefined> {
     const [dealer] = await db.select().from(dealers).where(eq(dealers.id, id));
+    return dealer;
+  }
+
+  async getDealers(): Promise<Dealer[]> {
+    return db.select().from(dealers);
+  }
+
+  async updateDealer(id: number, update: Partial<Dealer>): Promise<Dealer> {
+    const [dealer] = await db
+      .update(dealers)
+      .set(update)
+      .where(eq(dealers.id, id))
+      .returning();
     return dealer;
   }
 

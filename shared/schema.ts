@@ -4,10 +4,10 @@ import { z } from "zod";
 
 export const dealers = pgTable("dealers", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
   dealerName: text("dealer_name").notNull(),
+  contactName: text("contact_name").notNull(),
   email: text("email").notNull(),
+  phone: text("phone").notNull(),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -62,11 +62,10 @@ export const offers = pgTable("offers", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Schema definitions for inserts
 export const insertDealerSchema = createInsertSchema(dealers).omit({
   id: true,
   active: true,
-  createdAt: true
+  createdAt: true,
 });
 
 export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({
@@ -128,7 +127,6 @@ export const insertOfferSchema = createInsertSchema(offers).omit({
   createdAt: true
 });
 
-// Types
 export type Vehicle = typeof vehicles.$inferSelect;
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type InitialVehicle = z.infer<typeof createInitialVehicleSchema>;

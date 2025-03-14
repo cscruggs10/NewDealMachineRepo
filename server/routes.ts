@@ -185,6 +185,47 @@ export async function registerRoutes(app: Express) {
     next();
   };
 
+  // Admin dealer management routes
+  app.post("/api/dealers", async (req, res) => {
+    try {
+      const result = insertDealerSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: result.error.message });
+      }
+
+      const dealer = await storage.createDealer(result.data);
+      res.status(201).json(dealer);
+    } catch (error) {
+      console.error('Error creating dealer:', error);
+      res.status(500).json({ message: "Failed to create dealer" });
+    }
+  });
+
+  app.get("/api/dealers", async (_req, res) => {
+    try {
+      const dealers = await storage.getDealers();
+      res.json(dealers);
+    } catch (error) {
+      console.error('Error fetching dealers:', error);
+      res.status(500).json({ message: "Failed to fetch dealers" });
+    }
+  });
+
+  app.patch("/api/dealers/:id", async (req, res) => {
+    try {
+      const { active } = req.body;
+      const dealer = await storage.updateDealer(
+        parseInt(req.params.id),
+        { active }
+      );
+      res.json(dealer);
+    } catch (error) {
+      console.error('Error updating dealer:', error);
+      res.status(500).json({ message: "Failed to update dealer" });
+    }
+  });
+
+
   // Protected dealer routes
   app.get("/api/dealer/buycodes", requireDealer, async (req: any, res) => {
     try {
