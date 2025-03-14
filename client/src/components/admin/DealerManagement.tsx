@@ -55,12 +55,12 @@ export function DealerManagement() {
 
   const createDealerMutation = useMutation({
     mutationFn: async (data: z.infer<typeof dealerFormSchema>) => {
-      return apiRequest("POST", "/api/dealers", data);
+      const response = await apiRequest("POST", "/api/dealers", data);
+      const responseData = await response.json();
+      return responseData;
     },
-    onSuccess: async (response) => {
-      const data = await response.json();
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/dealers"] });
-      setIsAddingDealer(false);
       form.reset();
       setNewBuyCode(data.buyCode);
       toast({
