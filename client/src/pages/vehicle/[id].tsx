@@ -67,12 +67,14 @@ export default function VehicleDetails() {
   }
 
   // Only show available vehicles
-  if (vehicle.status === 'sold') {
+  if (vehicle.status === 'sold' || vehicle.status === 'removed') {
     return (
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-2xl font-bold">Vehicle No Longer Available</h1>
-          <p className="mt-2 text-muted-foreground">This vehicle has been sold.</p>
+          <p className="mt-2 text-muted-foreground">
+            This vehicle has been {vehicle.status === 'sold' ? 'sold' : 'removed from listings'}.
+          </p>
           <Link href="/">
             <Button className="mt-4">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -152,26 +154,52 @@ export default function VehicleDetails() {
               </Dialog>
             )}
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <p className="text-2xl font-bold text-primary">
-                  {formatCurrency(Number(vehicle.price))}
-                </p>
-                <p className="text-muted-foreground">
-                  Mileage: {vehicle.mileage ? vehicle.mileage.toLocaleString() : 'N/A'} miles
-                </p>
-                {vehicle.trim && (
-                  <p className="text-muted-foreground">Trim: {vehicle.trim}</p>
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Vehicle Details */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Price & Basic Info</h3>
+                  <div className="space-y-2">
+                    <p className="text-2xl font-bold text-primary">
+                      {formatCurrency(Number(vehicle.price))}
+                    </p>
+                    <p className="text-muted-foreground">
+                      Mileage: {vehicle.mileage ? vehicle.mileage.toLocaleString() : 'N/A'} miles
+                    </p>
+                    <p className="text-muted-foreground">
+                      Year: {vehicle.year}
+                    </p>
+                    <p className="text-muted-foreground">
+                      Make: {vehicle.make}
+                    </p>
+                    <p className="text-muted-foreground">
+                      Model: {vehicle.model}
+                    </p>
+                    {vehicle.trim && (
+                      <p className="text-muted-foreground">
+                        Trim: {vehicle.trim}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {vehicle.condition && (
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Certification</h3>
+                    <p className="text-sm font-medium inline-block px-3 py-1 rounded-full bg-primary/10 text-primary">
+                      {vehicle.condition}
+                    </p>
+                  </div>
                 )}
               </div>
-              <div className="space-y-2">
+
+              {/* Description and Additional Info */}
+              <div className="space-y-4">
                 {vehicle.description && (
-                  <p className="text-sm">{vehicle.description}</p>
-                )}
-                {vehicle.condition && (
-                  <p className="text-sm font-medium text-primary">
-                    {vehicle.condition}
-                  </p>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Description</h3>
+                    <p className="text-sm text-muted-foreground">{vehicle.description}</p>
+                  </div>
                 )}
               </div>
             </div>
