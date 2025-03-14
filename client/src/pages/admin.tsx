@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PricingQueue } from "@/components/admin/PricingQueue";
 import { VehicleComplete } from "@/components/admin/VehicleComplete";
 import { DealerManagement } from "@/components/admin/DealerManagement";
+import { TransactionManagement } from "@/components/admin/TransactionManagement";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Vehicle, Offer } from "@shared/schema";
@@ -99,6 +100,7 @@ export default function Admin() {
           <TabsList>
             <TabsTrigger value="complete">Complete Vehicle</TabsTrigger>
             <TabsTrigger value="dealers">Dealers</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="offers">Offers</TabsTrigger>
             <TabsTrigger value="codes">Buy Codes</TabsTrigger>
           </TabsList>
@@ -109,6 +111,10 @@ export default function Admin() {
 
           <TabsContent value="dealers" className="mt-6">
             <DealerManagement />
+          </TabsContent>
+
+          <TabsContent value="transactions" className="mt-6">
+            <TransactionManagement />
           </TabsContent>
 
           <TabsContent value="offers">
