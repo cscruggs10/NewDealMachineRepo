@@ -10,6 +10,7 @@ import { VideoIcon, Copy, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { UserEngagement } from "@/components/engagement/UserEngagement";
 
 export default function VehicleDetails() {
   const { id } = useParams();
@@ -99,10 +100,7 @@ export default function VehicleDetails() {
               Back to Listings
             </Button>
           </Link>
-          <Button variant="outline" onClick={copyLink}>
-            <Copy className="mr-2 h-4 w-4" />
-            Copy Link
-          </Button>
+          {vehicle && <UserEngagement vehicle={vehicle} />}
         </div>
 
         <Card className="overflow-hidden">
