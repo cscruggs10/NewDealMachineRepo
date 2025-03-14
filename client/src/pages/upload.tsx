@@ -20,12 +20,17 @@ type UploadStep = 'password' | 'vin' | 'video' | 'complete';
 export default function UploadPage() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<UploadStep>('password');
-  const [password, setPassword] = useState("");
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [walkaroundVideo, setWalkaroundVideo] = useState<File | null>(null);
   const [isDecodingVin, setIsDecodingVin] = useState(false);
 
-  const form = useForm({
+  const passwordForm = useForm({
+    defaultValues: {
+      password: "",
+    },
+  });
+
+  const vehicleForm = useForm({
     resolver: zodResolver(createInitialVehicleSchema),
     defaultValues: {
       vin: "",
@@ -37,8 +42,8 @@ export default function UploadPage() {
     },
   });
 
-  const verifyPassword = () => {
-    if (password === "1211") {
+  const verifyPassword = (data: { password: string }) => {
+    if (data.password === "1211") {
       setCurrentStep('vin');
       toast({
         title: "Success",
@@ -61,10 +66,10 @@ export default function UploadPage() {
         const vehicleInfo = await decodeVIN(result);
 
         // Update form with decoded vehicle information
-        form.setValue("year", vehicleInfo.year);
-        form.setValue("make", vehicleInfo.make);
-        form.setValue("model", vehicleInfo.model);
-        form.setValue("trim", vehicleInfo.trim);
+        vehicleForm.setValue("year", vehicleInfo.year);
+        vehicleForm.setValue("make", vehicleInfo.make);
+        vehicleForm.setValue("model", vehicleInfo.model);
+        vehicleForm.setValue("trim", vehicleInfo.trim);
 
         toast({
           title: "VIN Decoded",
@@ -127,7 +132,7 @@ export default function UploadPage() {
         title: "Success",
         description: "Vehicle added to queue for review",
       });
-      form.reset();
+      vehicleForm.reset();
       setCurrentStep('complete');
       setWalkaroundVideo(null);
     },
@@ -143,7 +148,7 @@ export default function UploadPage() {
   const handleNext = () => {
     switch (currentStep) {
       case 'vin':
-        const vin = form.getValues('vin');
+        const vin = vehicleForm.getValues('vin');
         if (vin.length !== 17) {
           toast({
             title: "Error",
@@ -163,7 +168,7 @@ export default function UploadPage() {
           });
           return;
         }
-        createVehicle.mutate(form.getValues());
+        createVehicle.mutate(vehicleForm.getValues());
         break;
     }
   };
@@ -177,23 +182,33 @@ export default function UploadPage() {
               <CardTitle>Enter Upload Password</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <FormLabel>Password</FormLabel>
-                  <div className="flex gap-2">
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter upload password"
-                    />
-                    <Button onClick={verifyPassword}>
-                      <Lock className="mr-2 h-4 w-4" />
-                      Verify
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(verifyPassword)} className="space-y-4">
+                  <FormField
+                    control={passwordForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input
+                              type="password"
+                              placeholder="Enter upload password"
+                              {...field}
+                            />
+                          </FormControl>
+                          <Button type="submit">
+                            <Lock className="mr-2 h-4 w-4" />
+                            Verify
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
             </CardContent>
           </>
         );
@@ -205,10 +220,10 @@ export default function UploadPage() {
               <CardTitle>Enter Vehicle VIN</CardTitle>
             </CardHeader>
             <CardContent>
-              <Form {...form}>
+              <Form {...vehicleForm}>
                 <form className="space-y-4">
                   <FormField
-                    control={form.control}
+                    control={vehicleForm.control}
                     name="vin"
                     render={({ field }) => (
                       <FormItem>
@@ -247,7 +262,7 @@ export default function UploadPage() {
                   {/* Auto-populated fields */}
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
-                      control={form.control}
+                      control={vehicleForm.control}
                       name="year"
                       render={({ field }) => (
                         <FormItem>
@@ -259,7 +274,7 @@ export default function UploadPage() {
                       )}
                     />
                     <FormField
-                      control={form.control}
+                      control={vehicleForm.control}
                       name="make"
                       render={({ field }) => (
                         <FormItem>
@@ -271,7 +286,7 @@ export default function UploadPage() {
                       )}
                     />
                     <FormField
-                      control={form.control}
+                      control={vehicleForm.control}
                       name="model"
                       render={({ field }) => (
                         <FormItem>
@@ -283,7 +298,7 @@ export default function UploadPage() {
                       )}
                     />
                     <FormField
-                      control={form.control}
+                      control={vehicleForm.control}
                       name="trim"
                       render={({ field }) => (
                         <FormItem>
@@ -357,8 +372,8 @@ export default function UploadPage() {
                 className="mt-4 w-full"
                 onClick={() => {
                   setCurrentStep('password');
-                  setPassword("");
-                  form.reset();
+                  passwordForm.reset();
+                  vehicleForm.reset();
                 }}
               >
                 Upload Another Vehicle
