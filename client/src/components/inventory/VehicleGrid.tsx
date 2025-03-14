@@ -12,9 +12,6 @@ interface VehicleGridProps {
   searchQuery: string;
   viewMode: "grid" | "list";
   certificationFilter: string;
-  priceRange: [number, number];
-  mileageRange: [number, number];
-  yearRange: [number, number];
   sortBy: string;
 }
 
@@ -22,9 +19,6 @@ export function VehicleGrid({
   searchQuery, 
   viewMode, 
   certificationFilter,
-  priceRange,
-  mileageRange,
-  yearRange,
   sortBy
 }: VehicleGridProps) {
   const { data: vehicles, isLoading } = useQuery<Vehicle[]>({ 
@@ -47,31 +41,12 @@ export function VehicleGrid({
     );
   });
 
-  // Filter vehicles based on all criteria
+  // Filter vehicles based on certification
   const filteredVehicles = searchFiltered.filter(vehicle => {
-    // First apply certification filter
+    // Apply certification filter
     if (certificationFilter !== "all" && vehicle.condition !== certificationFilter) {
       return false;
     }
-
-    // Apply price filter
-    const price = Number(vehicle.price) || 0;
-    if (price < priceRange[0] || price > priceRange[1]) {
-      return false;
-    }
-
-    // Apply mileage filter
-    const mileage = vehicle.mileage || 0;
-    if (mileage < mileageRange[0] || mileage > mileageRange[1]) {
-      return false;
-    }
-
-    // Apply year filter
-    const year = vehicle.year || 0;
-    if (year < yearRange[0] || year > yearRange[1]) {
-      return false;
-    }
-
     return true;
   });
 

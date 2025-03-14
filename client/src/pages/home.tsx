@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { LayoutGrid, List, Search } from "lucide-react";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -13,11 +12,6 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [certificationFilter, setCertificationFilter] = useState<string>("all");
   const [filtersEnabled, setFiltersEnabled] = useState(true);
-
-  // New filter states with adjusted ranges
-  const [priceRange, setPriceRange] = useState([0, 100000]);
-  const [mileageRange, setMileageRange] = useState([0, 200000]);
-  const [yearRange, setYearRange] = useState([2006, 2025]);
   const [sortBy, setSortBy] = useState("newest");
 
   return (
@@ -77,7 +71,7 @@ export default function Home() {
 
           {/* Filters Section */}
           <div className={`space-y-4 ${!filtersEnabled && 'opacity-50 pointer-events-none'}`}>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2">
               {/* Certification Filter */}
               <Select value={certificationFilter} onValueChange={setCertificationFilter}>
                 <SelectTrigger>
@@ -103,54 +97,6 @@ export default function Home() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Price Range */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Price Range</span>
-                <span>${priceRange[0].toLocaleString()} - ${priceRange[1].toLocaleString()}</span>
-              </div>
-              <Slider
-                min={0}
-                max={100000}
-                step={1000}
-                value={priceRange}
-                onValueChange={setPriceRange}
-                className="w-full"
-              />
-            </div>
-
-            {/* Mileage Range */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Mileage Range</span>
-                <span>{mileageRange[0].toLocaleString()} - {mileageRange[1].toLocaleString()} miles</span>
-              </div>
-              <Slider
-                min={0}
-                max={200000}
-                step={5000}
-                value={mileageRange}
-                onValueChange={setMileageRange}
-                className="w-full"
-              />
-            </div>
-
-            {/* Year Range */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Year Range</span>
-                <span>{yearRange[0]} - {yearRange[1]}</span>
-              </div>
-              <Slider
-                min={2006}
-                max={2025}
-                step={1}
-                value={yearRange}
-                onValueChange={setYearRange}
-                className="w-full"
-              />
-            </div>
           </div>
         </div>
 
@@ -158,9 +104,6 @@ export default function Home() {
           searchQuery={searchQuery}
           viewMode={viewMode}
           certificationFilter={filtersEnabled ? certificationFilter : "all"}
-          priceRange={filtersEnabled ? priceRange as [number, number] : [0, 100000]}
-          mileageRange={filtersEnabled ? mileageRange as [number, number] : [0, 200000]}
-          yearRange={filtersEnabled ? yearRange as [number, number] : [2006, 2025]}
           sortBy={sortBy}
         />
       </main>
