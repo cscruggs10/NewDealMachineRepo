@@ -15,7 +15,7 @@ export default function Home() {
   const [filtersEnabled, setFiltersEnabled] = useState(true);
 
   // New filter states with adjusted ranges
-  const [priceRange, setPriceRange] = useState([0, 25000]);
+  const [priceRange, setPriceRange] = useState([0, 100000]);
   const [mileageRange, setMileageRange] = useState([0, 200000]);
   const [yearRange, setYearRange] = useState([2006, 2025]);
   const [sortBy, setSortBy] = useState("newest");
@@ -112,8 +112,8 @@ export default function Home() {
               </div>
               <Slider
                 min={0}
-                max={25000}
-                step={500}
+                max={100000}
+                step={1000}
                 value={priceRange}
                 onValueChange={setPriceRange}
                 className="w-full"
@@ -154,11 +154,11 @@ export default function Home() {
           </div>
         </div>
 
-        <VehicleGrid 
+        <VehicleGrid
           searchQuery={searchQuery}
           viewMode={viewMode}
           certificationFilter={filtersEnabled ? certificationFilter : "all"}
-          priceRange={filtersEnabled ? priceRange as [number, number] : [0, 25000]}
+          priceRange={filtersEnabled ? priceRange as [number, number] : [0, 100000]}
           mileageRange={filtersEnabled ? mileageRange as [number, number] : [0, 200000]}
           yearRange={filtersEnabled ? yearRange as [number, number] : [2006, 2025]}
           sortBy={sortBy}
