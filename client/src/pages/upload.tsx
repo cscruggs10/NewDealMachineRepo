@@ -10,16 +10,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { FileUploader } from "@/components/ui/file-uploader";
-import { Loader2, Upload, VideoIcon } from "lucide-react";
+import { Loader2, Upload, VideoIcon, Lock } from "lucide-react";
 import { decodeVIN, vinSchema } from "@/lib/vin";
-import { VinScanner } from "@/components/scanner/VinScanner"; // Import VinScanner
-import { QRLink } from "@/components/ui/qr-link"; // Import QRLink
+import { VinScanner } from "@/components/scanner/VinScanner";
+import { QRLink } from "@/components/ui/qr-link";
 
-type UploadStep = 'vin' | 'video' | 'complete';
+type UploadStep = 'password' | 'vin' | 'video' | 'complete';
 
 export default function UploadPage() {
   const { toast } = useToast();
-  const [currentStep, setCurrentStep] = useState<UploadStep>('vin');
+  const [currentStep, setCurrentStep] = useState<UploadStep>('password');
+  const [password, setPassword] = useState("");
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [walkaroundVideo, setWalkaroundVideo] = useState<File | null>(null);
   const [isDecodingVin, setIsDecodingVin] = useState(false);
@@ -35,6 +36,22 @@ export default function UploadPage() {
       videos: [],
     },
   });
+
+  const verifyPassword = () => {
+    if (password === "1211") {
+      setCurrentStep('vin');
+      toast({
+        title: "Success",
+        description: "Password verified. You can now upload vehicles.",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Incorrect password",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleVinChange = async (vin: string) => {
     if (vin.length === 17) {
@@ -153,6 +170,34 @@ export default function UploadPage() {
 
   const renderStep = () => {
     switch (currentStep) {
+      case 'password':
+        return (
+          <>
+            <CardHeader>
+              <CardTitle>Enter Upload Password</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <FormLabel>Password</FormLabel>
+                  <div className="flex gap-2">
+                    <Input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter upload password"
+                    />
+                    <Button onClick={verifyPassword}>
+                      <Lock className="mr-2 h-4 w-4" />
+                      Verify
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </>
+        );
+
       case 'vin':
         return (
           <>
@@ -311,7 +356,8 @@ export default function UploadPage() {
               <Button 
                 className="mt-4 w-full"
                 onClick={() => {
-                  setCurrentStep('vin');
+                  setCurrentStep('password');
+                  setPassword("");
                   form.reset();
                 }}
               >
