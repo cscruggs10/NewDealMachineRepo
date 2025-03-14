@@ -17,7 +17,8 @@ export default function VehicleDetails() {
   const [isBuyDialogOpen, setIsBuyDialogOpen] = useState(false);
 
   const { data: vehicle, isLoading } = useQuery<Vehicle>({
-    queryKey: ["/api/vehicles", id],
+    queryKey: [`/api/vehicles/${id}`],
+    enabled: !!id,
   });
 
   const copyLink = async () => {
