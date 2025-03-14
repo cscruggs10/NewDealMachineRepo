@@ -58,7 +58,8 @@ export default function AdminLogin() {
       });
       // Invalidate the admin check query to refresh the auth state
       queryClient.invalidateQueries({ queryKey: ["/api/admin/check"] });
-      setLocation("/admin");
+      // Force a small delay to allow the query to invalidate
+      setTimeout(() => setLocation("/admin"), 100);
     },
     onError: (error) => {
       toast({
