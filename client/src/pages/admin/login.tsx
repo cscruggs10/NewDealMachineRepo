@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { queryClient } from "@/lib/queryClient";
 
 const ALLOWED_ADMINS = [
   'corey@ifinancememphis.com',
@@ -55,6 +56,8 @@ export default function AdminLogin() {
         title: "Success",
         description: "Logged in as admin",
       });
+      // Invalidate the admin check query to refresh the auth state
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/check"] });
       setLocation("/admin");
     },
     onError: (error) => {
@@ -80,7 +83,7 @@ export default function AdminLogin() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
+                <FormField 
                   control={form.control}
                   name="email"
                   render={({ field }) => (
