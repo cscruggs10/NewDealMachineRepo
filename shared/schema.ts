@@ -2,6 +2,16 @@ import { pgTable, text, serial, integer, decimal, boolean, timestamp } from "dri
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const dealers = pgTable("dealers", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  dealerName: text("dealer_name").notNull(),
+  email: text("email").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const vehicles = pgTable("vehicles", {
   id: serial("id").primaryKey(),
   vin: text("vin").notNull(),
@@ -10,16 +20,51 @@ export const vehicles = pgTable("vehicles", {
   trim: text("trim"),
   year: integer("year"),
   mileage: integer("mileage"),
-  price: text("price"), 
+  price: text("price"),
   description: text("description"),
   condition: text("condition"),
   videos: text("videos").array(),
-  status: text("status").notNull().default('pending'), 
+  status: text("status").notNull().default('pending'),
   inQueue: boolean("in_queue").notNull().default(true),
 });
 
-// Initial vehicle creation schema (only VIN and videos required)
-export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({ 
+export const buyCodes = pgTable("buy_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  dealerId: integer("dealer_id").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at"),
+  usageCount: integer("usage_count").notNull().default(0),
+  maxUses: integer("max_uses"),
+});
+
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  vehicleId: integer("vehicle_id").notNull(),
+  dealerId: integer("dealer_id").notNull(),
+  buyCodeId: integer("buy_code_id").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").notNull().default('completed'),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const offers = pgTable("offers", {
+  id: serial("id").primaryKey(),
+  vehicleId: integer("vehicle_id").notNull(),
+  dealerId: integer("dealer_id").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").notNull().default('pending'),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertDealerSchema = createInsertSchema(dealers).omit({
+  id: true,
+  active: true,
+  createdAt: true
+});
+
+export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({
   id: true,
   status: true,
   inQueue: true,
@@ -36,11 +81,10 @@ export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({
   videos: z.array(z.string()).optional(),
 });
 
-// Complete vehicle schema for admin completion
-export const insertVehicleSchema = createInsertSchema(vehicles).omit({ 
+export const insertVehicleSchema = createInsertSchema(vehicles).omit({
   id: true,
   status: true,
-  inQueue: true 
+  inQueue: true
 }).extend({
   vin: z.string().length(17, "VIN must be 17 characters"),
   make: z.string().min(1, "Make is required"),
@@ -55,38 +99,32 @@ export const insertVehicleSchema = createInsertSchema(vehicles).omit({
   videos: z.array(z.string()).min(1, "Video walkthrough is required"),
 });
 
-export const buyCodes = pgTable("buy_codes", {
-  id: serial("id").primaryKey(),
-  code: text("code").notNull().unique(),
-  dealerName: text("dealer_name").notNull(),
-  active: boolean("active").notNull().default(true),
-});
-
-export const offers = pgTable("offers", {
-  id: serial("id").primaryKey(),
-  vehicleId: integer("vehicle_id").notNull(),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  dealerName: text("dealer_name").notNull(),
-  contactInfo: text("contact_info").notNull(),
-  status: text("status").notNull().default('pending'), 
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const insertBuyCodeSchema = createInsertSchema(buyCodes).omit({ 
+export const insertBuyCodeSchema = createInsertSchema(buyCodes).omit({
   id: true,
-  active: true 
+  active: true,
+  createdAt: true,
+  usageCount: true
 });
 
-export const insertOfferSchema = createInsertSchema(offers).omit({ 
+export const insertTransactionSchema = createInsertSchema(transactions).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertOfferSchema = createInsertSchema(offers).omit({
   id: true,
   status: true,
-  createdAt: true 
+  createdAt: true
 });
 
 export type Vehicle = typeof vehicles.$inferSelect;
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type InitialVehicle = z.infer<typeof createInitialVehicleSchema>;
+export type Dealer = typeof dealers.$inferSelect;
+export type InsertDealer = z.infer<typeof insertDealerSchema>;
 export type BuyCode = typeof buyCodes.$inferSelect;
 export type InsertBuyCode = z.infer<typeof insertBuyCodeSchema>;
+export type Transaction = typeof transactions.$inferSelect;
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Offer = typeof offers.$inferSelect;
 export type InsertOffer = z.infer<typeof insertOfferSchema>;

@@ -6,6 +6,8 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
 import Upload from "@/pages/upload";
+import DealerLogin from "@/pages/dealer/login";
+import DealerDashboard from "@/pages/dealer/dashboard";
 import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from "@/components/ui/navigation-menu";
 import { Link } from "wouter";
 
@@ -34,6 +36,13 @@ function Navigation() {
             </NavigationMenuLink>
           </Link>
         </NavigationMenuItem>
+        <NavigationMenuItem>
+          <Link href="/dealer/login">
+            <NavigationMenuLink>
+              Dealer Login
+            </NavigationMenuLink>
+          </Link>
+        </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
   );
@@ -45,6 +54,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/admin" component={Admin} />
       <Route path="/upload" component={Upload} />
+      <Route path="/dealer/login" component={DealerLogin} />
+      <Route path="/dealer/dashboard" component={DealerDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

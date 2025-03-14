@@ -1,12 +1,14 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema, createInitialVehicleSchema } from "@shared/schema";
+import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema, createInitialVehicleSchema, insertDealerSchema } from "@shared/schema";
 import multer from "multer";
 import path from "path";
 import express from 'express';
 import fs from 'fs';
 import fetch from 'node-fetch';
+import bcrypt from 'bcryptjs';
+import session from 'express-session';
 
 // Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -82,11 +84,137 @@ async function decodeVIN(vin: string) {
   }
 }
 
+declare module 'express-session' {
+  interface SessionData {
+    dealerId?: number;
+    isAdmin?: boolean;
+  }
+}
+
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
   // Configure static file serving for uploads
   app.use('/uploads', express.static(uploadDir));
+
+  // Add session middleware
+  app.use(
+    session({
+      secret: 'your-secret-key', // **REPLACE with a strong secret key**
+      resave: false,
+      saveUninitialized: false,
+      cookie: { secure: process.env.NODE_ENV === 'production' }
+    })
+  );
+
+  // Dealer authentication routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const result = insertDealerSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: result.error.message });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(result.data.password, 10);
+
+      // Create dealer with hashed password
+      const dealer = await storage.createDealer({
+        ...result.data,
+        password: hashedPassword
+      });
+
+      // Remove password from response
+      const { password, ...dealerWithoutPassword } = dealer;
+      res.status(201).json(dealerWithoutPassword);
+    } catch (error) {
+      console.error('Error registering dealer:', error);
+      res.status(500).json({ message: "Failed to register dealer" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password required" });
+      }
+
+      const dealer = await storage.getDealerByUsername(username);
+      if (!dealer || !dealer.active) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const validPassword = await bcrypt.compare(password, dealer.password);
+      if (!validPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Set session
+      req.session.dealerId = dealer.id;
+
+      // Remove password from response
+      const { password: _, ...dealerWithoutPassword } = dealer;
+      res.json(dealerWithoutPassword);
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy(err => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  // Middleware to check if dealer is authenticated
+  const requireDealer = async (req: any, res: any, next: any) => {
+    if (!req.session.dealerId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const dealer = await storage.getDealerById(req.session.dealerId);
+    if (!dealer || !dealer.active) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    req.dealer = dealer;
+    next();
+  };
+
+  // Protected dealer routes
+  app.get("/api/dealer/buycodes", requireDealer, async (req: any, res) => {
+    try {
+      const buyCodes = await storage.getDealerBuyCodes(req.dealer.id);
+      res.json(buyCodes);
+    } catch (error) {
+      console.error('Error fetching buy codes:', error);
+      res.status(500).json({ message: "Failed to fetch buy codes" });
+    }
+  });
+
+  app.get("/api/dealer/transactions", requireDealer, async (req: any, res) => {
+    try {
+      const transactions = await storage.getDealerTransactions(req.dealer.id);
+      res.json(transactions);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
+
+  app.get("/api/dealer/offers", requireDealer, async (req: any, res) => {
+    try {
+      const offers = await storage.getDealerOffers(req.dealer.id);
+      res.json(offers);
+    } catch (error) {
+      console.error('Error fetching offers:', error);
+      res.status(500).json({ message: "Failed to fetch offers" });
+    }
+  });
 
   // Public vehicle routes
   app.get("/api/vehicles", async (_req, res) => {
@@ -138,16 +266,56 @@ export async function registerRoutes(app: Express) {
     res.json(vehicle);
   });
 
-  // Buy code verification
-  app.post("/api/verify-code", async (req, res) => {
-    const { code } = req.body;
-    if (!code) return res.status(400).json({ message: "Code required" });
 
-    const buyCode = await storage.getBuyCode(code);
-    if (!buyCode || !buyCode.active) {
-      return res.status(403).json({ message: "Invalid buy code" });
+  // Update the buy code verification to create a transaction
+  app.post("/api/verify-code", async (req, res) => {
+    const { code, vehicleId } = req.body;
+    if (!code || !vehicleId) {
+      return res.status(400).json({ message: "Code and vehicleId required" });
     }
-    res.json({ valid: true });
+
+    try {
+      const buyCode = await storage.getBuyCode(code);
+      if (!buyCode || !buyCode.active) {
+        return res.status(403).json({ message: "Invalid buy code" });
+      }
+
+      // Check if the code has reached its maximum uses
+      if (buyCode.maxUses && buyCode.usageCount >= buyCode.maxUses) {
+        return res.status(403).json({ message: "Buy code has expired" });
+      }
+
+      // Check if the code has expired
+      if (buyCode.expiresAt && new Date(buyCode.expiresAt) < new Date()) {
+        return res.status(403).json({ message: "Buy code has expired" });
+      }
+
+      // Get the vehicle to create transaction
+      const vehicle = await storage.getVehicle(vehicleId);
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      // Create transaction
+      const transaction = await storage.createTransaction({
+        vehicleId,
+        dealerId: buyCode.dealerId,
+        buyCodeId: buyCode.id,
+        amount: parseFloat(vehicle.price || "0"),
+        status: 'completed'
+      });
+
+      // Update buy code usage
+      await storage.updateBuyCodeUsage(buyCode.id);
+
+      res.json({ 
+        valid: true,
+        transaction
+      });
+    } catch (error) {
+      console.error('Error verifying buy code:', error);
+      res.status(500).json({ message: "Failed to verify buy code" });
+    }
   });
 
   // Offer management
