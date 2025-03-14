@@ -11,9 +11,10 @@ import { Link } from "wouter";
 interface VehicleGridProps {
   searchQuery: string;
   viewMode: "grid" | "list";
+  certificationFilter: string;
 }
 
-export function VehicleGrid({ searchQuery, viewMode }: VehicleGridProps) {
+export function VehicleGrid({ searchQuery, viewMode, certificationFilter }: VehicleGridProps) {
   const { data: vehicles, isLoading } = useQuery<Vehicle[]>({ 
     queryKey: ["/api/vehicles"] 
   });
@@ -21,8 +22,14 @@ export function VehicleGrid({ searchQuery, viewMode }: VehicleGridProps) {
   // Only show active vehicles that are not in queue
   const activeVehicles = vehicles?.filter(v => !v.inQueue && v.status === 'active') || [];
 
-  // Filter vehicles based on search query
+  // Filter vehicles based on search query and certification
   const filteredVehicles = activeVehicles.filter(vehicle => {
+    // First apply certification filter
+    if (certificationFilter !== "all" && vehicle.condition !== certificationFilter) {
+      return false;
+    }
+
+    // Then apply search filter
     if (!searchQuery) return true;
 
     const searchLower = searchQuery.toLowerCase();
@@ -51,10 +58,10 @@ export function VehicleGrid({ searchQuery, viewMode }: VehicleGridProps) {
   if (!filteredVehicles.length) {
     return (
       <div className="text-center py-12">
-        {searchQuery ? (
+        {searchQuery || certificationFilter !== "all" ? (
           <>
             <h2 className="text-2xl font-semibold">No vehicles found</h2>
-            <p className="text-muted-foreground">Try adjusting your search criteria</p>
+            <p className="text-muted-foreground">Try adjusting your search criteria or filters</p>
           </>
         ) : (
           <>
@@ -109,6 +116,11 @@ export function VehicleGrid({ searchQuery, viewMode }: VehicleGridProps) {
                     {vehicle.trim && (
                       <p className="text-sm text-muted-foreground">
                         Trim: {vehicle.trim}
+                      </p>
+                    )}
+                    {vehicle.condition && (
+                      <p className="text-sm font-medium text-primary">
+                        {vehicle.condition}
                       </p>
                     )}
                   </div>
