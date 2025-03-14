@@ -4,11 +4,18 @@ import { Button } from "@/components/ui/button";
 import { LayoutGrid, List, Search } from "lucide-react";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [certificationFilter, setCertificationFilter] = useState<string>("all");
+
+  // New filter states
+  const [priceRange, setPriceRange] = useState([0, 100000]);
+  const [mileageRange, setMileageRange] = useState([0, 200000]);
+  const [yearRange, setYearRange] = useState([1990, new Date().getFullYear()]);
+  const [sortBy, setSortBy] = useState("newest");
 
   return (
     <div className="min-h-screen bg-background">
@@ -23,6 +30,7 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto py-8">
         <div className="px-6 mb-6 space-y-4">
+          {/* Search and View Mode */}
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -54,9 +62,11 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Filters Section */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Certification Filter */}
             <Select value={certificationFilter} onValueChange={setCertificationFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger>
                 <SelectValue placeholder="Filter by certification" />
               </SelectTrigger>
               <SelectContent>
@@ -65,6 +75,67 @@ export default function Home() {
                 <SelectItem value="Auction Certified">Auction Certified</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Sort Options */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="price-low">Price: Low to High</SelectItem>
+                <SelectItem value="price-high">Price: High to Low</SelectItem>
+                <SelectItem value="mileage-low">Mileage: Low to High</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Price Range */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Price Range</span>
+              <span>${priceRange[0].toLocaleString()} - ${priceRange[1].toLocaleString()}</span>
+            </div>
+            <Slider
+              min={0}
+              max={100000}
+              step={1000}
+              value={priceRange}
+              onValueChange={setPriceRange}
+              className="w-full"
+            />
+          </div>
+
+          {/* Mileage Range */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Mileage Range</span>
+              <span>{mileageRange[0].toLocaleString()} - {mileageRange[1].toLocaleString()} miles</span>
+            </div>
+            <Slider
+              min={0}
+              max={200000}
+              step={5000}
+              value={mileageRange}
+              onValueChange={setMileageRange}
+              className="w-full"
+            />
+          </div>
+
+          {/* Year Range */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Year Range</span>
+              <span>{yearRange[0]} - {yearRange[1]}</span>
+            </div>
+            <Slider
+              min={1990}
+              max={new Date().getFullYear()}
+              step={1}
+              value={yearRange}
+              onValueChange={setYearRange}
+              className="w-full"
+            />
           </div>
         </div>
 
@@ -72,6 +143,10 @@ export default function Home() {
           searchQuery={searchQuery}
           viewMode={viewMode}
           certificationFilter={certificationFilter}
+          priceRange={priceRange}
+          mileageRange={mileageRange}
+          yearRange={yearRange}
+          sortBy={sortBy}
         />
       </main>
 

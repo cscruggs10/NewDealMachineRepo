@@ -12,9 +12,21 @@ interface VehicleGridProps {
   searchQuery: string;
   viewMode: "grid" | "list";
   certificationFilter: string;
+  priceRange: [number, number];
+  mileageRange: [number, number];
+  yearRange: [number, number];
+  sortBy: string;
 }
 
-export function VehicleGrid({ searchQuery, viewMode, certificationFilter }: VehicleGridProps) {
+export function VehicleGrid({ 
+  searchQuery, 
+  viewMode, 
+  certificationFilter,
+  priceRange,
+  mileageRange,
+  yearRange,
+  sortBy
+}: VehicleGridProps) {
   const { data: vehicles, isLoading } = useQuery<Vehicle[]>({ 
     queryKey: ["/api/vehicles"] 
   });
@@ -22,14 +34,32 @@ export function VehicleGrid({ searchQuery, viewMode, certificationFilter }: Vehi
   // Only show active vehicles that are not in queue
   const activeVehicles = vehicles?.filter(v => !v.inQueue && v.status === 'active') || [];
 
-  // Filter vehicles based on search query and certification
+  // Filter vehicles based on all criteria
   const filteredVehicles = activeVehicles.filter(vehicle => {
     // First apply certification filter
     if (certificationFilter !== "all" && vehicle.condition !== certificationFilter) {
       return false;
     }
 
-    // Then apply search filter
+    // Apply price filter
+    const price = Number(vehicle.price) || 0;
+    if (price < priceRange[0] || price > priceRange[1]) {
+      return false;
+    }
+
+    // Apply mileage filter
+    const mileage = vehicle.mileage || 0;
+    if (mileage < mileageRange[0] || mileage > mileageRange[1]) {
+      return false;
+    }
+
+    // Apply year filter
+    const year = vehicle.year || 0;
+    if (year < yearRange[0] || year > yearRange[1]) {
+      return false;
+    }
+
+    // Apply search filter
     if (!searchQuery) return true;
 
     const searchLower = searchQuery.toLowerCase();
@@ -39,6 +69,21 @@ export function VehicleGrid({ searchQuery, viewMode, certificationFilter }: Vehi
       vehicle.year?.toString().includes(searchLower) ||
       vehicle.vin?.toLowerCase().includes(searchLower)
     );
+  });
+
+  // Sort vehicles
+  const sortedVehicles = [...filteredVehicles].sort((a, b) => {
+    switch (sortBy) {
+      case 'price-low':
+        return (Number(a.price) || 0) - (Number(b.price) || 0);
+      case 'price-high':
+        return (Number(b.price) || 0) - (Number(a.price) || 0);
+      case 'mileage-low':
+        return (a.mileage || 0) - (b.mileage || 0);
+      case 'newest':
+      default:
+        return (b.year || 0) - (a.year || 0);
+    }
   });
 
   if (isLoading) {
@@ -55,7 +100,7 @@ export function VehicleGrid({ searchQuery, viewMode, certificationFilter }: Vehi
     );
   }
 
-  if (!filteredVehicles.length) {
+  if (!sortedVehicles.length) {
     return (
       <div className="text-center py-12">
         {searchQuery || certificationFilter !== "all" ? (
@@ -76,7 +121,7 @@ export function VehicleGrid({ searchQuery, viewMode, certificationFilter }: Vehi
   if (viewMode === "list") {
     return (
       <div className="space-y-4 p-6">
-        {filteredVehicles.map((vehicle) => (
+        {sortedVehicles.map((vehicle) => (
           <Card key={vehicle.id} className="overflow-hidden">
             <CardContent className="p-6">
               <div className="flex items-start gap-6">
@@ -140,7 +185,7 @@ export function VehicleGrid({ searchQuery, viewMode, certificationFilter }: Vehi
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-      {filteredVehicles.map((vehicle) => (
+      {sortedVehicles.map((vehicle) => (
         <VehicleCard key={vehicle.id} vehicle={vehicle} />
       ))}
     </div>
