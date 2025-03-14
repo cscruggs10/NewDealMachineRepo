@@ -5,13 +5,13 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
-import AdminLogin from "@/pages/admin/login"; // Added import
+import AdminLogin from "@/pages/admin/login";
 import Upload from "@/pages/upload";
 import DealerLogin from "@/pages/dealer/login";
 import DealerDashboard from "@/pages/dealer/dashboard";
 import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from "@/components/ui/navigation-menu";
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query"; // Added import
+import { useQuery } from "@tanstack/react-query";
 
 function Navigation() {
   // Check if admin is logged in
@@ -35,20 +35,6 @@ function Navigation() {
           </Link>
         </NavigationMenuItem>
         <NavigationMenuItem>
-          <Link href={adminAuth?.authorized ? "/admin" : "/admin/login"}>
-            <NavigationMenuLink>
-              Admin
-            </NavigationMenuLink>
-          </Link>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
-          <Link href="/upload">
-            <NavigationMenuLink>
-              Upload Vehicle
-            </NavigationMenuLink>
-          </Link>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
           <Link href="/dealer/login">
             <NavigationMenuLink>
               Dealer Login
@@ -57,6 +43,34 @@ function Navigation() {
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
+  );
+}
+
+function Footer() {
+  const { data: adminAuth } = useQuery({
+    queryKey: ["/api/admin/check"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/check");
+      if (!res.ok) return null;
+      return res.json();
+    }
+  });
+
+  return (
+    <footer className="border-t py-4 mt-auto">
+      <div className="max-w-screen px-6 flex justify-center gap-6">
+        <Link href={adminAuth?.authorized ? "/admin" : "/admin/login"}>
+          <a className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Admin
+          </a>
+        </Link>
+        <Link href="/upload">
+          <a className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Upload Vehicle
+          </a>
+        </Link>
+      </div>
+    </footer>
   );
 }
 
@@ -77,9 +91,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Navigation />
         <Router />
+        <Footer />
       </div>
       <Toaster />
     </QueryClientProvider>
