@@ -306,11 +306,13 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/dealer/transactions", async (req, res) => {
     try {
-      // Get dealer ID from the session - TODO: Add proper auth
-      const dealerId = 1; // Temporarily hardcoded
-      const transactions = await storage.getDealerTransactions(dealerId);
+      // Get dealer ID from the session
+      const dealerId = req.session.dealerId;
+      if (!dealerId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
 
-      // Get vehicle details for each transaction
+      const transactions = await storage.getDealerTransactions(dealerId);
       const transactionsWithVehicles = await Promise.all(
         transactions.map(async (transaction) => {
           const vehicle = await storage.getVehicle(transaction.vehicleId);
@@ -355,13 +357,18 @@ export async function registerRoutes(app: Express) {
   app.get("/api/transactions", async (_req, res) => {
     try {
       const transactions = await storage.getTransactions();
-      const transactionsWithVehicles = await Promise.all(
+      const transactionsWithDetails = await Promise.all(
         transactions.map(async (transaction) => {
           const vehicle = await storage.getVehicle(transaction.vehicleId);
-          return { ...transaction, vehicle };
+          const dealer = await storage.getDealerById(transaction.dealerId);
+          return { 
+            ...transaction, 
+            vehicle,
+            dealerName: dealer?.dealerName 
+          };
         })
       );
-      res.json(transactionsWithVehicles);
+      res.json(transactionsWithDetails);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       res.status(500).json({ message: "Failed to fetch transactions" });

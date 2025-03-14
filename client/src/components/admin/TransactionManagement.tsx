@@ -12,7 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 export function TransactionManagement() {
   const { toast } = useToast();
 
-  const { data: transactions, isLoading } = useQuery<(Transaction & { vehicle: Vehicle })[]>({
+  const { data: transactions, isLoading } = useQuery<(Transaction & { vehicle: Vehicle; dealerName: string })[]>({
     queryKey: ["/api/transactions"],
   });
 
@@ -80,6 +80,9 @@ export function TransactionManagement() {
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       Transaction ID: {transaction.id}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Dealer: {transaction.dealerName}
                     </p>
                     <p className="text-lg font-semibold text-primary">
                       {formatCurrency(Number(transaction.amount))}
