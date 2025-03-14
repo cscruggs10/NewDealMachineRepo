@@ -34,8 +34,21 @@ export function VehicleGrid({
   // Only show active vehicles that are not in queue
   const activeVehicles = vehicles?.filter(v => !v.inQueue && v.status === 'active') || [];
 
+  // Apply search filter regardless of other filters
+  const searchFiltered = activeVehicles.filter(vehicle => {
+    if (!searchQuery) return true;
+
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      vehicle.make?.toLowerCase().includes(searchLower) ||
+      vehicle.model?.toLowerCase().includes(searchLower) ||
+      vehicle.year?.toString().includes(searchLower) ||
+      vehicle.vin?.toLowerCase().includes(searchLower)
+    );
+  });
+
   // Filter vehicles based on all criteria
-  const filteredVehicles = activeVehicles.filter(vehicle => {
+  const filteredVehicles = searchFiltered.filter(vehicle => {
     // First apply certification filter
     if (certificationFilter !== "all" && vehicle.condition !== certificationFilter) {
       return false;
@@ -59,16 +72,7 @@ export function VehicleGrid({
       return false;
     }
 
-    // Apply search filter
-    if (!searchQuery) return true;
-
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      vehicle.make?.toLowerCase().includes(searchLower) ||
-      vehicle.model?.toLowerCase().includes(searchLower) ||
-      vehicle.year?.toString().includes(searchLower) ||
-      vehicle.vin?.toLowerCase().includes(searchLower)
-    );
+    return true;
   });
 
   // Sort vehicles
@@ -100,13 +104,15 @@ export function VehicleGrid({
     );
   }
 
-  if (!sortedVehicles.length) {
+  const displayVehicles = sortedVehicles;
+
+  if (!displayVehicles.length) {
     return (
       <div className="text-center py-12">
-        {searchQuery || certificationFilter !== "all" ? (
+        {searchQuery ? (
           <>
             <h2 className="text-2xl font-semibold">No vehicles found</h2>
-            <p className="text-muted-foreground">Try adjusting your search criteria or filters</p>
+            <p className="text-muted-foreground">Try adjusting your search criteria</p>
           </>
         ) : (
           <>
@@ -121,7 +127,7 @@ export function VehicleGrid({
   if (viewMode === "list") {
     return (
       <div className="space-y-4 p-6">
-        {sortedVehicles.map((vehicle) => (
+        {displayVehicles.map((vehicle) => (
           <Card key={vehicle.id} className="overflow-hidden">
             <CardContent className="p-6">
               <div className="flex items-start gap-6">
@@ -185,7 +191,7 @@ export function VehicleGrid({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-      {sortedVehicles.map((vehicle) => (
+      {displayVehicles.map((vehicle) => (
         <VehicleCard key={vehicle.id} vehicle={vehicle} />
       ))}
     </div>
