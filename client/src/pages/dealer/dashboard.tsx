@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Transaction, BuyCode } from "@shared/schema";
+import { Transaction, BuyCode, Vehicle } from "@shared/schema";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
@@ -8,7 +8,7 @@ import { formatCurrency } from "@/lib/utils";
 export default function DealerDashboard() {
   const [, setLocation] = useLocation();
 
-  const { data: transactions } = useQuery<Transaction[]>({
+  const { data: transactions } = useQuery<(Transaction & { vehicle?: Vehicle })[]>({
     queryKey: ["/api/dealer/transactions"],
   });
 
@@ -86,7 +86,13 @@ export default function DealerDashboard() {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-medium">
-                            Vehicle ID: {transaction.vehicleId}
+                            {transaction.vehicle ? (
+                              <>
+                                {transaction.vehicle.year} {transaction.vehicle.make} {transaction.vehicle.model}
+                              </>
+                            ) : (
+                              `Vehicle ID: ${transaction.vehicleId}`
+                            )}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {new Date(transaction.createdAt).toLocaleDateString()}
