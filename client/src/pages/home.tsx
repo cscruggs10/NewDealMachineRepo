@@ -5,11 +5,14 @@ import { LayoutGrid, List, Search } from "lucide-react";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [certificationFilter, setCertificationFilter] = useState<string>("all");
+  const [filtersEnabled, setFiltersEnabled] = useState(true);
 
   // New filter states with adjusted ranges
   const [priceRange, setPriceRange] = useState([0, 25000]);
@@ -62,90 +65,102 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Filters toggle */}
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="filters-toggle"
+              checked={filtersEnabled}
+              onCheckedChange={setFiltersEnabled}
+            />
+            <Label htmlFor="filters-toggle">Enable Filters</Label>
+          </div>
+
           {/* Filters Section */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {/* Certification Filter */}
-            <Select value={certificationFilter} onValueChange={setCertificationFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by certification" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Listings</SelectItem>
-                <SelectItem value="Deal Machine Certified">Deal Machine Certified</SelectItem>
-                <SelectItem value="Auction Certified">Auction Certified</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className={`space-y-4 ${!filtersEnabled && 'opacity-50 pointer-events-none'}`}>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {/* Certification Filter */}
+              <Select value={certificationFilter} onValueChange={setCertificationFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by certification" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Listings</SelectItem>
+                  <SelectItem value="Deal Machine Certified">Deal Machine Certified</SelectItem>
+                  <SelectItem value="Auction Certified">Auction Certified</SelectItem>
+                </SelectContent>
+              </Select>
 
-            {/* Sort Options */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort by..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="price-low">Price: Low to High</SelectItem>
-                <SelectItem value="price-high">Price: High to Low</SelectItem>
-                <SelectItem value="mileage-low">Mileage: Low to High</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Price Range */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Price Range</span>
-              <span>${priceRange[0].toLocaleString()} - ${priceRange[1].toLocaleString()}</span>
+              {/* Sort Options */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sort by..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="price-low">Price: Low to High</SelectItem>
+                  <SelectItem value="price-high">Price: High to Low</SelectItem>
+                  <SelectItem value="mileage-low">Mileage: Low to High</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Slider
-              min={0}
-              max={25000}
-              step={500}
-              value={priceRange}
-              onValueChange={setPriceRange}
-              className="w-full"
-            />
-          </div>
 
-          {/* Mileage Range */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Mileage Range</span>
-              <span>{mileageRange[0].toLocaleString()} - {mileageRange[1].toLocaleString()} miles</span>
+            {/* Price Range */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Price Range</span>
+                <span>${priceRange[0].toLocaleString()} - ${priceRange[1].toLocaleString()}</span>
+              </div>
+              <Slider
+                min={0}
+                max={25000}
+                step={500}
+                value={priceRange}
+                onValueChange={setPriceRange}
+                className="w-full"
+              />
             </div>
-            <Slider
-              min={0}
-              max={200000}
-              step={5000}
-              value={mileageRange}
-              onValueChange={setMileageRange}
-              className="w-full"
-            />
-          </div>
 
-          {/* Year Range */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Year Range</span>
-              <span>{yearRange[0]} - {yearRange[1]}</span>
+            {/* Mileage Range */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Mileage Range</span>
+                <span>{mileageRange[0].toLocaleString()} - {mileageRange[1].toLocaleString()} miles</span>
+              </div>
+              <Slider
+                min={0}
+                max={200000}
+                step={5000}
+                value={mileageRange}
+                onValueChange={setMileageRange}
+                className="w-full"
+              />
             </div>
-            <Slider
-              min={2006}
-              max={2025}
-              step={1}
-              value={yearRange}
-              onValueChange={setYearRange}
-              className="w-full"
-            />
+
+            {/* Year Range */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Year Range</span>
+                <span>{yearRange[0]} - {yearRange[1]}</span>
+              </div>
+              <Slider
+                min={2006}
+                max={2025}
+                step={1}
+                value={yearRange}
+                onValueChange={setYearRange}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
 
         <VehicleGrid 
           searchQuery={searchQuery}
           viewMode={viewMode}
-          certificationFilter={certificationFilter}
-          priceRange={priceRange}
-          mileageRange={mileageRange}
-          yearRange={yearRange}
+          certificationFilter={filtersEnabled ? certificationFilter : "all"}
+          priceRange={filtersEnabled ? priceRange as [number, number] : [0, 25000]}
+          mileageRange={filtersEnabled ? mileageRange as [number, number] : [0, 200000]}
+          yearRange={filtersEnabled ? yearRange as [number, number] : [2006, 2025]}
           sortBy={sortBy}
         />
       </main>
