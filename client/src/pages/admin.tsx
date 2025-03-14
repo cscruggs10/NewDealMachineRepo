@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PricingQueue } from "@/components/admin/PricingQueue";
 import { VehicleComplete } from "@/components/admin/VehicleComplete";
+import { DealerManagement } from "@/components/admin/DealerManagement";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Vehicle, Offer } from "@shared/schema";
@@ -29,7 +30,7 @@ export default function Admin() {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
       toast({
         title: "Success",
-        description: data.message,
+        description: "Vehicles synced successfully",
       });
     },
     onError: () => {
@@ -97,12 +98,17 @@ export default function Admin() {
         <Tabs defaultValue="complete">
           <TabsList>
             <TabsTrigger value="complete">Complete Vehicle</TabsTrigger>
+            <TabsTrigger value="dealers">Dealers</TabsTrigger>
             <TabsTrigger value="offers">Offers</TabsTrigger>
             <TabsTrigger value="codes">Buy Codes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="complete" className="mt-6">
             <VehicleComplete />
+          </TabsContent>
+
+          <TabsContent value="dealers" className="mt-6">
+            <DealerManagement />
           </TabsContent>
 
           <TabsContent value="offers">
@@ -128,7 +134,7 @@ export default function Admin() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Implement buy code management UI */}
+                {/* Buy code management will be handled in DealerManagement */}
               </CardContent>
             </Card>
           </TabsContent>
