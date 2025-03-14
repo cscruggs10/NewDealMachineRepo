@@ -29,6 +29,7 @@ export interface IStorage {
   createBuyCode(buyCode: InsertBuyCode): Promise<BuyCode>;
   updateBuyCodeUsage(id: number): Promise<BuyCode>;
   getDealerBuyCodes(dealerId: number): Promise<BuyCode[]>;
+  getAllBuyCodes(): Promise<BuyCode[]>; // Added method
 
   // Transactions
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
@@ -138,6 +139,10 @@ export class DatabaseStorage implements IStorage {
 
   async getDealerBuyCodes(dealerId: number): Promise<BuyCode[]> {
     return db.select().from(buyCodes).where(eq(buyCodes.dealerId, dealerId));
+  }
+
+  async getAllBuyCodes(): Promise<BuyCode[]> { // Added method implementation
+    return db.select().from(buyCodes);
   }
 
   // Transaction methods

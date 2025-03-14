@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Badge } from "@/components/ui/badge";
 
 const dealerFormSchema = z.object({
   dealerName: z.string().min(1, "Dealer name is required"),
@@ -31,6 +32,7 @@ export function DealerManagement() {
   const { toast } = useToast();
   const [isAddingDealer, setIsAddingDealer] = useState(false);
   const [newBuyCode, setNewBuyCode] = useState<BuyCode | null>(null);
+  const [selectedDealerId, setSelectedDealerId] = useState<number | null>(null);
 
   const form = useForm<z.infer<typeof dealerFormSchema>>({
     resolver: zodResolver(dealerFormSchema),
@@ -51,6 +53,11 @@ export function DealerManagement() {
 
   const { data: dealers } = useQuery<Dealer[]>({
     queryKey: ["/api/dealers"],
+  });
+
+  const { data: buyCodes } = useQuery<BuyCode[]>({
+    queryKey: ["/api/buy-codes"],
+    enabled: Boolean(selectedDealerId),
   });
 
   const createDealerMutation = useMutation({
@@ -90,6 +97,25 @@ export function DealerManagement() {
     },
   });
 
+  const generateNewBuyCode = useMutation({
+    mutationFn: async (dealerId: number) => {
+      const response = await apiRequest("POST", "/api/buy-codes", {
+        dealerId,
+        maxUses: 10,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/buy-codes"] });
+      toast({
+        title: "Success",
+        description: "New buy code generated",
+      });
+      setNewBuyCode(data);
+    },
+  });
+
   const onSubmit = (data: z.infer<typeof dealerFormSchema>) => {
     createDealerMutation.mutate(data);
   };
@@ -113,6 +139,7 @@ export function DealerManagement() {
                   <p className="text-2xl font-mono">{newBuyCode.code}</p>
                   <p className="text-sm text-muted-foreground mt-2">
                     This code expires in 30 days and can be used up to 10 times.
+                    Make sure to provide this code to the dealer.
                   </p>
                 </div>
                 <Button onClick={() => {
@@ -305,12 +332,17 @@ export function DealerManagement() {
       <CardContent>
         <div className="space-y-4">
           {dealers?.map((dealer) => (
-            <Card key={dealer.id}>
+            <Card key={dealer.id} onClick={() => setSelectedDealerId(dealer.id)}>
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
-                  <div className="space-y-4">
+                  <div className="space-y-4 flex-1">
                     <div>
-                      <p className="font-medium text-lg">{dealer.dealerName}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-lg">{dealer.dealerName}</p>
+                        <Badge variant={dealer.active ? "default" : "secondary"}>
+                          {dealer.active ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
                       <p className="text-sm text-muted-foreground">{dealer.address}</p>
                     </div>
 
@@ -336,16 +368,42 @@ export function DealerManagement() {
                         <p className="text-sm text-muted-foreground">{dealer.titleContactPhone}</p>
                       </div>
                     </div>
+
+                    <div className="border-t pt-4 mt-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium mb-2">Buy Codes</h4>
+                          {buyCodes?.filter(code => code.dealerId === dealer.id).map(code => (
+                            <div key={code.id} className="mb-2">
+                              <p className="font-mono text-sm bg-muted p-2 rounded inline-block">
+                                {code.code}
+                              </p>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                Uses: {code.usageCount}/{code.maxUses || "∞"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="space-x-2">
+                          <Button
+                            onClick={() => generateNewBuyCode.mutate(dealer.id)}
+                            disabled={generateNewBuyCode.isPending}
+                          >
+                            Generate New Code
+                          </Button>
+                          <Button
+                            variant={dealer.active ? "destructive" : "default"}
+                            onClick={() => toggleDealerStatus.mutate({
+                              id: dealer.id,
+                              active: !dealer.active
+                            })}
+                          >
+                            {dealer.active ? "Deactivate" : "Activate"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <Button
-                    variant={dealer.active ? "default" : "secondary"}
-                    onClick={() => toggleDealerStatus.mutate({
-                      id: dealer.id,
-                      active: !dealer.active
-                    })}
-                  >
-                    {dealer.active ? "Active" : "Inactive"}
-                  </Button>
                 </div>
               </CardContent>
             </Card>

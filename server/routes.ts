@@ -280,6 +280,17 @@ export async function registerRoutes(app: Express) {
     res.status(201).json(buyCode);
   });
 
+  // Add this GET endpoint for buy codes after the existing buy code routes
+  app.get("/api/buy-codes", async (_req, res) => {
+    try {
+      const buyCodes = await storage.getAllBuyCodes();
+      res.json(buyCodes);
+    } catch (error) {
+      console.error('Error fetching buy codes:', error);
+      res.status(500).json({ message: "Failed to fetch buy codes" });
+    }
+  });
+
   // Transaction management
   app.patch("/api/transactions/:id", async (req, res) => {
     try {
