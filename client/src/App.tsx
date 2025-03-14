@@ -26,24 +26,34 @@ function Navigation() {
   });
 
   return (
-    <NavigationMenu className="max-w-screen px-6 py-4 bg-background border-b">
-      <NavigationMenuList className="gap-6">
-        <NavigationMenuItem>
-          <Link href="/">
-            <NavigationMenuLink className="text-lg font-semibold">
-              Deal Machine
-            </NavigationMenuLink>
-          </Link>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
-          <Link href="/dealer/login">
-            <NavigationMenuLink>
-              Dealer Login
-            </NavigationMenuLink>
-          </Link>
-        </NavigationMenuItem>
-      </NavigationMenuList>
-    </NavigationMenu>
+    <div className="border-b bg-background">
+      <div className="container mx-auto px-4">
+        <NavigationMenu className="h-16">
+          <NavigationMenuList className="gap-6">
+            <NavigationMenuItem className="flex-shrink-0">
+              <Link href="/">
+                <NavigationMenuLink className="flex items-center">
+                  <div className="w-40 h-10 flex items-center">
+                    <img 
+                      src="/assets/deal-machine-logo.jpg" 
+                      alt="Deal Machine Logo" 
+                      className="h-8 w-auto"
+                    />
+                  </div>
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <Link href="/dealer/login">
+                <NavigationMenuLink className="text-base">
+                  Dealer Login
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+      </div>
+    </div>
   );
 }
 
@@ -59,7 +69,7 @@ function Footer() {
 
   return (
     <footer className="border-t py-4 mt-auto">
-      <div className="max-w-screen px-6 flex justify-center gap-6">
+      <div className="container mx-auto px-4 flex justify-center gap-6">
         <Link href={adminAuth?.authorized ? "/admin" : "/admin/login"}>
           <a className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Admin
@@ -95,7 +105,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-background flex flex-col">
         <Navigation />
-        <Router />
+        <main className="flex-grow">
+          <Router />
+        </main>
         <Footer />
       </div>
       <Toaster />
