@@ -29,6 +29,9 @@ export default function DealerDashboard() {
   // Get dealer info from local storage if available
   const dealerInfo = JSON.parse(localStorage.getItem('dealerInfo') || '{}');
 
+  // Find the most recently created active buy code
+  const currentBuyCode = buyCodes?.find(code => code.active);
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -37,8 +40,23 @@ export default function DealerDashboard() {
           <p className="text-muted-foreground mt-1">Manage your transactions and buy codes</p>
         </div>
 
+        {/* Current Buy Code Display */}
+        {currentBuyCode && (
+          <Card className="bg-primary/5 border-primary">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Your Current Buy Code</h3>
+                  <p className="text-3xl font-mono font-bold text-primary">{currentBuyCode.code}</p>
+                </div>
+                <div className="text-sm text-primary">Active</div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Buy Codes */}
+          {/* Buy Codes History */}
           <Card>
             <CardHeader>
               <CardTitle>Your Buy Codes</CardTitle>
