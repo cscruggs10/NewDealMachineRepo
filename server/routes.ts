@@ -289,6 +289,52 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Dealer-specific routes
+  app.get("/api/dealer/buycodes", async (req, res) => {
+    try {
+      // Get dealer ID from the session - TODO: Add proper auth
+      const dealerId = 1; // Temporarily hardcoded
+      const buyCodes = await storage.getDealerBuyCodes(dealerId);
+      res.json(buyCodes);
+    } catch (error) {
+      console.error('Error fetching dealer buy codes:', error);
+      res.status(500).json({ message: "Failed to fetch buy codes" });
+    }
+  });
+
+  app.get("/api/dealer/transactions", async (req, res) => {
+    try {
+      // Get dealer ID from the session - TODO: Add proper auth
+      const dealerId = 1; // Temporarily hardcoded
+      const transactions = await storage.getDealerTransactions(dealerId);
+
+      // Get vehicle details for each transaction
+      const transactionsWithVehicles = await Promise.all(
+        transactions.map(async (transaction) => {
+          const vehicle = await storage.getVehicle(transaction.vehicleId);
+          return { ...transaction, vehicle };
+        })
+      );
+
+      res.json(transactionsWithVehicles);
+    } catch (error) {
+      console.error('Error fetching dealer transactions:', error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
+
+  app.get("/api/dealer/offers", async (req, res) => {
+    try {
+      // Get dealer ID from the session - TODO: Add proper auth
+      const dealerId = 1; // Temporarily hardcoded
+      const offers = await storage.getDealerOffers(dealerId);
+      res.json(offers);
+    } catch (error) {
+      console.error('Error fetching dealer offers:', error);
+      res.status(500).json({ message: "Failed to fetch offers" });
+    }
+  });
+
   // Transaction management
   app.patch("/api/transactions/:id", async (req, res) => {
     try {
@@ -340,6 +386,45 @@ export async function registerRoutes(app: Express) {
       console.error('Error uploading bill of sale:', error);
       res.status(500).json({ message: "Failed to upload bill of sale" });
     }
+  });
+
+  // Dealer Authentication
+  app.post("/api/dealer/login", async (req, res) => {
+    try {
+      const { dealerName, buyCode } = req.body;
+      if (!dealerName || !buyCode) {
+        return res.status(400).json({ message: "Dealer name and buy code required" });
+      }
+
+      // Find dealer by name
+      const dealer = await storage.getDealerByDealerName(dealerName);
+      if (!dealer) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Check active buy codes for this dealer
+      const dealerBuyCodes = await storage.getDealerBuyCodes(dealer.id);
+      const validCode = dealerBuyCodes.find(code => code.code === buyCode && code.active);
+      if (!validCode) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Set session data
+      req.session.dealerId = dealer.id;
+
+      // Return dealer info (excluding sensitive data)
+      const { id, dealerName: name, email, address } = dealer;
+      return res.json({ id, dealerName: name, email, address });
+    } catch (error) {
+      console.error("Error during dealer login:", error);
+      return res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post("/api/dealer/logout", (req, res) => {
+    req.session.destroy(() => {
+      res.sendStatus(200);
+    });
   });
 
   return httpServer;

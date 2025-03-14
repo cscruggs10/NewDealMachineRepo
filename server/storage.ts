@@ -23,6 +23,7 @@ export interface IStorage {
   getDealerById(id: number): Promise<Dealer | undefined>;
   getDealers(): Promise<Dealer[]>;
   updateDealer(id: number, update: Partial<Dealer>): Promise<Dealer>;
+  getDealerByDealerName(dealerName: string): Promise<Dealer | undefined>; // Add this method to the IStorage interface
 
   // Buy Codes
   getBuyCode(code: string): Promise<BuyCode | undefined>;
@@ -141,7 +142,7 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(buyCodes).where(eq(buyCodes.dealerId, dealerId));
   }
 
-  async getAllBuyCodes(): Promise<BuyCode[]> { // Added method implementation
+  async getAllBuyCodes(): Promise<BuyCode[]> { 
     return db.select().from(buyCodes);
   }
 
@@ -189,6 +190,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(offers.id, id))
       .returning();
     return offer;
+  }
+  async getDealerByDealerName(dealerName: string): Promise<Dealer | undefined> { // Add this method to the DatabaseStorage class implementation
+    const [dealer] = await db.select().from(dealers).where(eq(dealers.dealerName, dealerName));
+    return dealer;
   }
 }
 
