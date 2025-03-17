@@ -177,7 +177,10 @@ export default function UploadPage() {
       </CardHeader>
       <CardContent>
         <Form {...vehicleForm}>
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={(e) => {
+            e.preventDefault();
+            handleNext();
+          }}>
             <FormField
               control={vehicleForm.control}
               name="vin"
@@ -267,7 +270,7 @@ export default function UploadPage() {
             </div>
 
             <div className="flex flex-col md:flex-row gap-4 items-start">
-              <Button onClick={handleNext} className="md:flex-1">
+              <Button type="submit" className="md:flex-1">
                 Next <VideoIcon className="ml-2 h-4 w-4" />
               </Button>
               <QRLink url={window.location.href} />
@@ -320,6 +323,7 @@ export default function UploadPage() {
 
       case 'vin':
         return renderVinStep();
+
       case 'video':
         return (
           <>
