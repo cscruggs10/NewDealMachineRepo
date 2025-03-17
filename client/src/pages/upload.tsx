@@ -66,6 +66,10 @@ export default function UploadPage() {
         const result = await vinSchema.parseAsync(vin);
         const vehicleInfo = await decodeVIN(result);
 
+        // Set the VIN first
+        vehicleForm.setValue("vin", vin);
+
+        // Then set other vehicle information
         vehicleForm.setValue("year", vehicleInfo.year);
         vehicleForm.setValue("make", vehicleInfo.make);
         vehicleForm.setValue("model", vehicleInfo.model);
@@ -90,10 +94,10 @@ export default function UploadPage() {
   const createVehicle = useMutation({
     mutationFn: async (data: any) => {
       try {
+        setUploadingMedia(true);
         let uploadedVideos: string[] = [];
 
         if (walkaroundVideo) {
-          setUploadingMedia(true);
           const formData = new FormData();
           formData.append('files', walkaroundVideo);
 
@@ -142,14 +146,18 @@ export default function UploadPage() {
     },
   });
 
-  const handleNext = () => {
+  const handleNext = (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+
     switch (currentStep) {
       case 'vin':
         const vin = vehicleForm.getValues('vin');
-        if (vin.length !== 17) {
+        if (!vin || vin.length !== 17) {
           toast({
             title: "Error",
-            description: "Please enter a 17-digit VIN",
+            description: "Please enter a valid 17-digit VIN",
             variant: "destructive",
           });
           return;
@@ -177,10 +185,7 @@ export default function UploadPage() {
       </CardHeader>
       <CardContent>
         <Form {...vehicleForm}>
-          <form className="space-y-4" onSubmit={(e) => {
-            e.preventDefault();
-            handleNext();
-          }}>
+          <form onSubmit={handleNext} className="space-y-4">
             <FormField
               control={vehicleForm.control}
               name="vin"
@@ -191,19 +196,21 @@ export default function UploadPage() {
                     <FormControl>
                       <Input 
                         placeholder="Enter full 17-character VIN"
+                        {...field}
                         onChange={(e) => {
-                          field.onChange(e);
-                          handleVinChange(e.target.value);
+                          const value = e.target.value.toUpperCase();
+                          field.onChange(value);
+                          handleVinChange(value);
                         }}
-                        value={field.value}
                         maxLength={17}
                         disabled={isDecodingVin}
                       />
                     </FormControl>
                     <VinScanner 
                       onScan={(vin) => {
-                        vehicleForm.setValue("vin", vin);
-                        handleVinChange(vin);
+                        const value = vin.toUpperCase();
+                        vehicleForm.setValue("vin", value);
+                        handleVinChange(value);
                       }} 
                     />
                   </div>
@@ -340,7 +347,7 @@ export default function UploadPage() {
                 onFilesSelected={(files) => setWalkaroundVideo(files[0])}
               />
               <Button 
-                onClick={handleNext}
+                onClick={() => handleNext()}
                 disabled={createVehicle.isPending || uploadingMedia}
               >
                 {(createVehicle.isPending || uploadingMedia) ? (
