@@ -45,6 +45,7 @@ export default function UploadPage() {
   const verifyPassword = (data: { password: string }) => {
     if (data.password === "1211") {
       setCurrentStep('vin');
+      passwordForm.reset(); // Clear password form
       toast({
         title: "Success",
         description: "Password verified. You can now upload vehicles.",
@@ -109,7 +110,6 @@ export default function UploadPage() {
 
           const urls = await response.json();
           uploadedVideos = urls;
-          console.log("Video upload successful:", uploadedVideos);
         }
 
         // Create the vehicle with the video URL
@@ -118,7 +118,6 @@ export default function UploadPage() {
           videos: uploadedVideos,
         };
 
-        console.log('Creating vehicle with data:', vehicleData);
         return apiRequest("POST", "/api/vehicles", vehicleData);
       } catch (error) {
         console.error('Upload/creation error:', error);
