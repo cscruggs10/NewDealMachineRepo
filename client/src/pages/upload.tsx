@@ -45,7 +45,7 @@ export default function UploadPage() {
   const verifyPassword = (data: { password: string }) => {
     if (data.password === "1211") {
       setCurrentStep('vin');
-      passwordForm.reset(); // Clear password form
+      passwordForm.reset(); 
       toast({
         title: "Success",
         description: "Password verified. You can now upload vehicles.",
@@ -66,7 +66,6 @@ export default function UploadPage() {
         const result = await vinSchema.parseAsync(vin);
         const vehicleInfo = await decodeVIN(result);
 
-        // Update form with decoded vehicle information
         vehicleForm.setValue("year", vehicleInfo.year);
         vehicleForm.setValue("make", vehicleInfo.make);
         vehicleForm.setValue("model", vehicleInfo.model);
@@ -112,7 +111,6 @@ export default function UploadPage() {
           uploadedVideos = urls;
         }
 
-        // Create the vehicle with the video URL
         const vehicleData = {
           ...data,
           videos: uploadedVideos,
@@ -172,6 +170,114 @@ export default function UploadPage() {
     }
   };
 
+  const renderVinStep = () => (
+    <>
+      <CardHeader>
+        <CardTitle>Enter Vehicle VIN</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...vehicleForm}>
+          <form className="space-y-4">
+            <FormField
+              control={vehicleForm.control}
+              name="vin"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Vehicle Identification Number (VIN)</FormLabel>
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input 
+                        placeholder="Enter full 17-character VIN"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleVinChange(e.target.value);
+                        }}
+                        value={field.value}
+                        maxLength={17}
+                        disabled={isDecodingVin}
+                      />
+                    </FormControl>
+                    <VinScanner 
+                      onScan={(vin) => {
+                        vehicleForm.setValue("vin", vin);
+                        handleVinChange(vin);
+                      }} 
+                    />
+                  </div>
+                  <FormMessage />
+                  {isDecodingVin && (
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Decoding VIN...
+                    </div>
+                  )}
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={vehicleForm.control}
+                name="year"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Year</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={vehicleForm.control}
+                name="make"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Make</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={vehicleForm.control}
+                name="model"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Model</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={vehicleForm.control}
+                name="trim"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Trim</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 items-start">
+              <Button onClick={handleNext} className="md:flex-1">
+                Next <VideoIcon className="ml-2 h-4 w-4" />
+              </Button>
+              <QRLink url={window.location.href} />
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </>
+  );
+
   const renderStep = () => {
     switch (currentStep) {
       case 'password':
@@ -213,115 +319,7 @@ export default function UploadPage() {
         );
 
       case 'vin':
-        return (
-          <>
-            <CardHeader>
-              <CardTitle>Enter Vehicle VIN</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...vehicleForm}>
-                <form className="space-y-4">
-                  <FormField
-                    control={vehicleForm.control}
-                    name="vin"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Vehicle Identification Number (VIN)</FormLabel>
-                        <div className="flex gap-2">
-                          <FormControl>
-                            <Input 
-                              placeholder="Enter full 17-character VIN"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e);
-                                handleVinChange(e.target.value);
-                              }}
-                              maxLength={17}
-                              disabled={isDecodingVin}
-                            />
-                          </FormControl>
-                          <VinScanner 
-                            onScan={(vin) => {
-                              field.onChange(vin);
-                              handleVinChange(vin);
-                            }} 
-                          />
-                        </div>
-                        <FormMessage />
-                        {isDecodingVin && (
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Decoding VIN...
-                          </div>
-                        )}
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Auto-populated fields */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={vehicleForm.control}
-                      name="year"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Year</FormLabel>
-                          <FormControl>
-                            <Input {...field} disabled />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={vehicleForm.control}
-                      name="make"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Make</FormLabel>
-                          <FormControl>
-                            <Input {...field} disabled />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={vehicleForm.control}
-                      name="model"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Model</FormLabel>
-                          <FormControl>
-                            <Input {...field} disabled />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={vehicleForm.control}
-                      name="trim"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Trim</FormLabel>
-                          <FormControl>
-                            <Input {...field} disabled />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="flex flex-col md:flex-row gap-4 items-start">
-                    <Button onClick={handleNext} className="md:flex-1">
-                      Next <VideoIcon className="ml-2 h-4 w-4" />
-                    </Button>
-                    <QRLink url={window.location.href} />
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </>
-        );
-
+        return renderVinStep();
       case 'video':
         return (
           <>
