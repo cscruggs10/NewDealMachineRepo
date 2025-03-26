@@ -38,6 +38,30 @@ export default function VehicleDetails() {
     }
   };
 
+  const handleBuyNow = async () => {
+    try {
+      const response = await fetch(`/api/vehicles/${id}/buy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process purchase');
+      }
+
+      const data = await response.json();
+      window.location.href = data.checkoutUrl;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process purchase. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background p-6">
@@ -218,7 +242,7 @@ export default function VehicleDetails() {
                 </DialogContent>
               </Dialog>
 
-              <Button variant="default" className="w-full">
+              <Button variant="default" className="w-full" onClick={handleBuyNow}>
                 Buy Now
               </Button>
             </div>
