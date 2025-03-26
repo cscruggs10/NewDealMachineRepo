@@ -11,7 +11,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { UserEngagement } from "@/components/engagement/UserEngagement";
-import { apiRequest } from "@/lib/queryClient";
+//import { apiRequest } from "@/lib/queryClient";
 
 export default function VehicleDetails() {
   const { id } = useParams();
@@ -25,7 +25,18 @@ export default function VehicleDetails() {
 
   const buyMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/vehicles/${id}/buy`, {});
+      const response = await fetch(`/api/vehicles/${id}/buy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process purchase');
+      }
+
+      return response.json();
     },
     onSuccess: (data) => {
       if (data.checkoutUrl) {
