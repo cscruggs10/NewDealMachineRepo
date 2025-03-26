@@ -1,5 +1,5 @@
 import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Vehicle } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { UserEngagement } from "@/components/engagement/UserEngagement";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function VehicleDetails() {
   const { id } = useParams();
@@ -20,6 +21,26 @@ export default function VehicleDetails() {
   const { data: vehicle, isLoading } = useQuery<Vehicle>({
     queryKey: [`/api/vehicles/${id}`],
     enabled: !!id,
+  });
+
+  const buyMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/vehicles/${id}/buy`, {});
+    },
+    onSuccess: (data) => {
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to process purchase. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const copyLink = async () => {
@@ -33,30 +54,6 @@ export default function VehicleDetails() {
       toast({
         title: "Error",
         description: "Failed to copy link to clipboard",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleBuyNow = async () => {
-    try {
-      const response = await fetch(`/api/vehicles/${id}/buy`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to process purchase');
-      }
-
-      const data = await response.json();
-      window.location.href = data.checkoutUrl;
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to process purchase. Please try again.",
         variant: "destructive",
       });
     }
@@ -238,12 +235,17 @@ export default function VehicleDetails() {
                   <DialogHeader>
                     <DialogTitle>Make an Offer</DialogTitle>
                   </DialogHeader>
-                  <OfferForm vehicleId={vehicle.id} />
+                  <OfferForm vehicleId={vehicle?.id || 0} />
                 </DialogContent>
               </Dialog>
 
-              <Button variant="default" className="w-full" onClick={handleBuyNow}>
-                Buy Now
+              <Button 
+                variant="default" 
+                className="w-full" 
+                onClick={() => buyMutation.mutate()}
+                disabled={buyMutation.isPending}
+              >
+                {buyMutation.isPending ? "Processing..." : "Buy Now"}
               </Button>
             </div>
           </CardContent>
