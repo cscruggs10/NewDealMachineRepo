@@ -11,7 +11,6 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { UserEngagement } from "@/components/engagement/UserEngagement";
-//import { apiRequest } from "@/lib/queryClient";
 
 export default function VehicleDetails() {
   const { id } = useParams();
