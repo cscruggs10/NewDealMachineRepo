@@ -11,6 +11,8 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { UserEngagement } from "@/components/engagement/UserEngagement";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 
 export default function VehicleDetails() {
   const { id } = useParams();
@@ -22,36 +24,36 @@ export default function VehicleDetails() {
     enabled: !!id,
   });
 
-  const buyMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/vehicles/${id}/buy`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+  const verifyBuyCodeMutation = useMutation({
+    mutationFn: async (code: string) => {
+      return apiRequest("POST", "/api/verify-code", {
+        code,
+        vehicleId: Number(id),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to process purchase');
-      }
-
-      return response.json();
     },
-    onSuccess: (data) => {
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      } else {
-        throw new Error('No checkout URL returned');
-      }
+    onSuccess: () => {
+      toast({
+        title: "Success!",
+        description: "Vehicle purchase initiated. Our team will contact you shortly.",
+      });
+      setIsBuyDialogOpen(false);
+      // Invalidate vehicles query to refresh the list
+      queryClient.invalidateQueries({ queryKey: [`/api/vehicles/${id}`] });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to process purchase. Please try again.",
+        description: "Invalid buy code. Please try again.",
         variant: "destructive",
       });
     },
   });
+
+  const handleBuyNow = async () => {
+    const code = prompt("Please enter your buy code:");
+    if (!code) return;
+    verifyBuyCodeMutation.mutate(code);
+  };
 
   const copyLink = async () => {
     try {
@@ -252,10 +254,10 @@ export default function VehicleDetails() {
               <Button 
                 variant="default" 
                 className="w-full" 
-                onClick={() => buyMutation.mutate()}
-                disabled={buyMutation.isPending}
+                onClick={handleBuyNow}
+                disabled={verifyBuyCodeMutation.isPending}
               >
-                {buyMutation.isPending ? "Processing..." : "Buy Now"}
+                {verifyBuyCodeMutation.isPending ? "Processing..." : "Buy Now"}
               </Button>
             </div>
           </CardContent>
