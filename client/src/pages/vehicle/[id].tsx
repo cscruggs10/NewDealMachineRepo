@@ -37,8 +37,9 @@ export default function VehicleDetails() {
         description: "Vehicle purchase initiated. Our team will contact you shortly.",
       });
       setIsBuyDialogOpen(false);
-      // Invalidate vehicles query to refresh the list
+      // Invalidate both the individual vehicle query and the vehicles list query
       queryClient.invalidateQueries({ queryKey: [`/api/vehicles/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
     },
     onError: () => {
       toast({
