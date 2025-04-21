@@ -1,7 +1,14 @@
 import type { Express, Request, Response } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema, createInitialVehicleSchema, insertDealerSchema } from "@shared/schema";
+import { 
+  insertVehicleSchema, 
+  insertOfferSchema, 
+  insertBuyCodeSchema, 
+  createInitialVehicleSchema, 
+  insertDealerSchema,
+  vehicleInspectionSchema 
+} from "@shared/schema";
 import multer from "multer";
 import path from "path";
 import express from 'express';
@@ -501,6 +508,49 @@ export async function registerRoutes(app: Express) {
     req.session.destroy(() => {
       res.sendStatus(200);
     });
+  });
+
+  // Vehicle inspection routes
+  app.post("/api/vehicles/:vin/inspection", async (req, res) => {
+    try {
+      const { vin } = req.params;
+      
+      // Validate inspection data
+      const result = vehicleInspectionSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid inspection data", 
+          errors: result.error.format() 
+        });
+      }
+
+      // Verify the VIN and find the vehicle
+      const vehicle = await storage.getVehicleByVin(vin);
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      // Update the vehicle with inspection data
+      const updatedVehicle = await storage.updateVehicle(vehicle.id, {
+        vinPhoto: result.data.vinPhoto,
+        walkaroundVideo: result.data.walkaroundVideo,
+        mechanicalVideo: result.data.mechanicalVideo,
+        cosmeticRepairEstimate: result.data.cosmeticRepairEstimate,
+        mechanicalRepairEstimate: result.data.mechanicalRepairEstimate,
+        inspectionNotes: result.data.inspectionNotes,
+        inspectionStatus: result.data.inspectionStatus,
+        inspectionFailReason: result.data.inspectionFailReason,
+        // If inspection passed, mark as active; otherwise, leave as pending
+        status: result.data.inspectionStatus === 'passed' ? 'active' : 'pending',
+        // Move to queue only if inspection passed
+        inQueue: result.data.inspectionStatus === 'passed',
+      });
+
+      res.json(updatedVehicle);
+    } catch (error) {
+      console.error('Error submitting inspection:', error);
+      res.status(500).json({ message: "Failed to submit inspection" });
+    }
   });
 
   return httpServer;

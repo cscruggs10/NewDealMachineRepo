@@ -197,17 +197,18 @@ export const vehicleInspectionSchema = z.object({
   mechanicalRepairEstimate: z.string().min(1, "Mechanical repair estimate is required"),
   inspectionNotes: z.string().optional(),
   inspectionStatus: z.enum(["passed", "failed"]),
-  inspectionFailReason: z.string().optional().refine(
-    (val, ctx) => {
-      if (ctx.parent.inspectionStatus === "failed" && (!val || val.trim() === "")) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "Reason for failure is required when inspection is failed",
+  inspectionFailReason: z.string().optional(),
+}).refine(
+  (data) => {
+    if (data.inspectionStatus === "failed" && (!data.inspectionFailReason || data.inspectionFailReason.trim() === "")) {
+      return false;
     }
-  ),
-});
+    return true;
+  },
+  {
+    message: "Reason for failure is required when inspection is failed",
+    path: ["inspectionFailReason"],
+  }
+);
 
 export type VehicleInspection = z.infer<typeof vehicleInspectionSchema>;
