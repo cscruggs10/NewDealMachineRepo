@@ -70,7 +70,7 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
   };
 
   // Only show available vehicles
-  if (vehicle.status === 'sold') {
+  if (vehicle.status === 'sold' || vehicle.status === 'removed' || vehicle.inspectionStatus === 'failed') {
     return null;
   }
 
@@ -158,11 +158,33 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
             <p className="text-muted-foreground">Trim: {vehicle.trim}</p>
           )}
           <p className="text-sm line-clamp-2">{vehicle.description}</p>
-          {vehicle.condition && (
-            <p className="text-sm font-medium text-primary">
-              {vehicle.condition}
-            </p>
-          )}
+          {/* Certification & Inspection Status */}
+          <div className="flex flex-col gap-1">
+            {vehicle.condition && (
+              <div className="flex items-center gap-1">
+                <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                  {vehicle.condition}
+                </span>
+              </div>
+            )}
+            {vehicle.inspectionStatus && (
+              <div className="flex items-center gap-1">
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                  vehicle.inspectionStatus === "passed" 
+                    ? "bg-green-100 text-green-800" 
+                    : vehicle.inspectionStatus === "failed"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-yellow-100 text-yellow-800"
+                }`}>
+                  {vehicle.inspectionStatus === "passed" 
+                    ? "Inspection Passed" 
+                    : vehicle.inspectionStatus === "failed"
+                    ? "Inspection Failed"
+                    : "Pending Inspection"}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-auto space-y-2 pt-4">
