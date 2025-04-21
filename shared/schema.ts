@@ -37,15 +37,6 @@ export const vehicles = pgTable("vehicles", {
   inQueue: boolean("in_queue").notNull().default(true),
   billOfSale: text("bill_of_sale"), // URL to uploaded bill of sale document
   isPaid: boolean("is_paid").default(false),
-  // Inspection fields
-  vinPhoto: text("vin_photo"), // URL to VIN/Auction Run Label photo
-  walkaroundVideo: text("walkaround_video"), // URL to exterior/interior walkaround video
-  mechanicalVideo: text("mechanical_video"), // URL to mechanical inspection video
-  cosmeticRepairEstimate: text("cosmetic_repair_estimate"), // Cost estimate for cosmetic repairs
-  mechanicalRepairEstimate: text("mechanical_repair_estimate"), // Cost estimate for mechanical repairs
-  inspectionNotes: text("inspection_notes"), // Additional notes about the vehicle
-  inspectionStatus: text("inspection_status").default('pending'), // 'pending', 'passed', 'failed'
-  inspectionFailReason: text("inspection_fail_reason"), // Reason for inspection failure
 });
 
 export const buyCodes = pgTable("buy_codes", {
@@ -106,14 +97,6 @@ export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({
   description: true,
   billOfSale: true,
   isPaid: true,
-  vinPhoto: true,
-  walkaroundVideo: true,
-  mechanicalVideo: true,
-  cosmeticRepairEstimate: true,
-  mechanicalRepairEstimate: true,
-  inspectionNotes: true,
-  inspectionStatus: true,
-  inspectionFailReason: true,
 }).extend({
   vin: z.string().length(17, "Please enter the full 17-character VIN"),
   videos: z.array(z.string()).optional(),
@@ -137,15 +120,6 @@ export const insertVehicleSchema = createInsertSchema(vehicles).omit({
     required_error: "Certification type is required",
   }),
   videos: z.array(z.string()).min(1, "Video walkthrough is required"),
-  // Inspection fields
-  vinPhoto: z.string().optional(),
-  walkaroundVideo: z.string().optional(),
-  mechanicalVideo: z.string().optional(),
-  cosmeticRepairEstimate: z.string().optional(),
-  mechanicalRepairEstimate: z.string().optional(),
-  inspectionNotes: z.string().optional(),
-  inspectionStatus: z.enum(["pending", "passed", "failed"]).optional(),
-  inspectionFailReason: z.string().optional(),
 });
 
 export const insertBuyCodeSchema = createInsertSchema(buyCodes).omit({
@@ -186,29 +160,3 @@ export type Offer = typeof offers.$inferSelect;
 export type InsertOffer = z.infer<typeof insertOfferSchema>;
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type InsertAdminUser = z.infer<typeof insertAdminSchema>;
-
-// Create a specific schema for vehicle inspection
-export const vehicleInspectionSchema = z.object({
-  vin: z.string().length(17, "VIN must be 17 characters"),
-  vinPhoto: z.string().min(1, "VIN/Auction run label photo is required"),
-  walkaroundVideo: z.string().min(1, "Exterior/interior walkaround video is required"),
-  mechanicalVideo: z.string().min(1, "Mechanical inspection video is required"),
-  cosmeticRepairEstimate: z.string().min(1, "Cosmetic repair estimate is required"),
-  mechanicalRepairEstimate: z.string().min(1, "Mechanical repair estimate is required"),
-  inspectionNotes: z.string().optional(),
-  inspectionStatus: z.enum(["passed", "failed"]),
-  inspectionFailReason: z.string().optional(),
-}).refine(
-  (data) => {
-    if (data.inspectionStatus === "failed" && (!data.inspectionFailReason || data.inspectionFailReason.trim() === "")) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: "Reason for failure is required when inspection is failed",
-    path: ["inspectionFailReason"],
-  }
-);
-
-export type VehicleInspection = z.infer<typeof vehicleInspectionSchema>;

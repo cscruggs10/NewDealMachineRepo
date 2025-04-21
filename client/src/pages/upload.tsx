@@ -9,17 +9,19 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Lock, VideoIcon } from "lucide-react";
+import { FileUploader } from "@/components/ui/file-uploader";
+import { Loader2, Upload, VideoIcon, Lock } from "lucide-react";
 import { decodeVIN, vinSchema } from "@/lib/vin";
 import { VinScanner } from "@/components/scanner/VinScanner";
 import { QRLink } from "@/components/ui/qr-link";
-import { InspectionForm } from "@/components/forms/InspectionForm";
 
-type UploadStep = 'password' | 'vin' | 'inspection' | 'complete';
+type UploadStep = 'password' | 'vin' | 'video' | 'complete';
 
 export default function UploadPage() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<UploadStep>('password');
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [walkaroundVideo, setWalkaroundVideo] = useState<File | null>(null);
   const [isDecodingVin, setIsDecodingVin] = useState(false);
 
   const passwordForm = useForm({
@@ -91,20 +93,54 @@ export default function UploadPage() {
 
   const createVehicle = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/vehicles", data);
+      try {
+        setUploadingMedia(true);
+        let uploadedVideos: string[] = [];
+
+        if (walkaroundVideo) {
+          const formData = new FormData();
+          formData.append('files', walkaroundVideo);
+
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to upload video');
+          }
+
+          const urls = await response.json();
+          uploadedVideos = urls;
+        }
+
+        const vehicleData = {
+          ...data,
+          videos: uploadedVideos,
+        };
+
+        return apiRequest("POST", "/api/vehicles", vehicleData);
+      } catch (error) {
+        console.error('Upload/creation error:', error);
+        throw error;
+      } finally {
+        setUploadingMedia(false);
+      }
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Vehicle has been registered and is ready for inspection",
+        description: "Vehicle added to queue for review",
       });
       vehicleForm.reset();
-      setCurrentStep('inspection');
+      setCurrentStep('complete');
+      setWalkaroundVideo(null);
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to register vehicle",
+        description: error.message || "Failed to add vehicle",
         variant: "destructive",
       });
     },
@@ -115,28 +151,31 @@ export default function UploadPage() {
       e.preventDefault();
     }
 
-    const vin = vehicleForm.getValues('vin');
-    if (!vin || vin.length !== 17) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid 17-digit VIN",
-        variant: "destructive",
-      });
-      return;
+    switch (currentStep) {
+      case 'vin':
+        const vin = vehicleForm.getValues('vin');
+        if (!vin || vin.length !== 17) {
+          toast({
+            title: "Error",
+            description: "Please enter a valid 17-digit VIN",
+            variant: "destructive",
+          });
+          return;
+        }
+        setCurrentStep('video');
+        break;
+      case 'video':
+        if (!walkaroundVideo) {
+          toast({
+            title: "Error",
+            description: "Please upload a walkaround video",
+            variant: "destructive",
+          });
+          return;
+        }
+        createVehicle.mutate(vehicleForm.getValues());
+        break;
     }
-
-    // Submit the vehicle data to register it
-    createVehicle.mutate({
-      vin: vin,
-      year: vehicleForm.getValues('year'),
-      make: vehicleForm.getValues('make'),
-      model: vehicleForm.getValues('model'),
-      trim: vehicleForm.getValues('trim'),
-    });
-  };
-
-  const handleInspectionComplete = () => {
-    setCurrentStep('complete');
   };
 
   const renderVinStep = () => (
@@ -238,17 +277,8 @@ export default function UploadPage() {
             </div>
 
             <div className="flex flex-col md:flex-row gap-4 items-start">
-              <Button type="submit" className="md:flex-1" disabled={createVehicle.isPending}>
-                {createVehicle.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Next <VideoIcon className="ml-2 h-4 w-4" />
-                  </>
-                )}
+              <Button type="submit" className="md:flex-1">
+                Next <VideoIcon className="ml-2 h-4 w-4" />
               </Button>
               <QRLink url={window.location.href} />
             </div>
@@ -301,23 +331,50 @@ export default function UploadPage() {
       case 'vin':
         return renderVinStep();
 
-      case 'inspection':
+      case 'video':
         return (
-          <InspectionForm 
-            vin={vehicleForm.getValues('vin')} 
-            onComplete={handleInspectionComplete} 
-          />
+          <>
+            <CardHeader>
+              <CardTitle>Vehicle Walkaround Video</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Please include footage of any damage in your walkthrough video
+              </p>
+              <FileUploader
+                accept="video/*"
+                maxFiles={1}
+                onFilesSelected={(files) => setWalkaroundVideo(files[0])}
+              />
+              <Button 
+                onClick={() => handleNext()}
+                disabled={createVehicle.isPending || uploadingMedia}
+              >
+                {(createVehicle.isPending || uploadingMedia) ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Submit for Review
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </>
         );
 
       case 'complete':
         return (
           <>
             <CardHeader>
-              <CardTitle>Inspection Complete</CardTitle>
+              <CardTitle>Upload Complete</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-center text-muted-foreground">
-                Vehicle inspection has been submitted successfully
+                Vehicle has been added to the queue for review
               </p>
               <Button 
                 className="mt-4 w-full"
@@ -327,7 +384,7 @@ export default function UploadPage() {
                   vehicleForm.reset();
                 }}
               >
-                Inspect Another Vehicle
+                Upload Another Vehicle
               </Button>
             </CardContent>
           </>

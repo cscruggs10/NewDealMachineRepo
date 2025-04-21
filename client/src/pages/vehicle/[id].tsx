@@ -13,7 +13,6 @@ import { Link } from "wouter";
 import { UserEngagement } from "@/components/engagement/UserEngagement";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import { CertificationInfo } from "@/components/ui/certification-info";
 
 export default function VehicleDetails() {
   const { id } = useParams();
@@ -235,7 +234,6 @@ export default function VehicleDetails() {
                     <p className="text-sm text-muted-foreground">{vehicle.description}</p>
                   </div>
                 )}
-                <CertificationInfo vehicle={vehicle} />
               </div>
             </div>
 
