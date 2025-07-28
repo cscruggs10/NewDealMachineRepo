@@ -323,7 +323,7 @@ export async function registerRoutes(app: Express) {
       }
 
       const fileUrls = files.map(file => {
-        return `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
+        return `/uploads/${file.filename}`;
       });
 
       res.json(fileUrls);
@@ -450,7 +450,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
+      const fileUrl = `/uploads/${file.filename}`;
 
       const transaction = await storage.updateTransaction(
         parseInt(req.params.id),
