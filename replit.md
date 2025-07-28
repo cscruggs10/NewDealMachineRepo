@@ -8,6 +8,16 @@ Deal Machine is a full-stack web application for wholesale automotive marketplac
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**July 28, 2025**
+- Fixed Buy Now button functionality on individual vehicle pages
+- Added contact information dialog for users without buy codes: (555) 123-DEAL
+- Fixed video URL issues by updating database to use relative paths instead of old domains
+- Added video file type filtering to only display actual video content (.mp4, .mov, .MOV, .webm)
+- Debug logs confirmed video detection working correctly (console shows "Has video: true")
+- Video thumbnails should display on home page for vehicles 13 and 14 (Honda Accord and Subaru Outback)
+
 ## System Architecture
 
 ### Frontend Architecture

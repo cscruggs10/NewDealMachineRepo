@@ -106,12 +106,7 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-4">
-        {(() => {
-          console.log('Vehicle:', vehicle.id, 'Videos:', vehicle.videos);
-          const hasVideo = vehicle.videos?.[0] && (vehicle.videos[0].includes('.mp4') || vehicle.videos[0].includes('.mov') || vehicle.videos[0].includes('.MOV') || vehicle.videos[0].includes('.webm'));
-          console.log('Has video:', hasVideo);
-          return hasVideo;
-        })() ? (
+        {vehicle.videos?.[0] && (vehicle.videos[0].includes('.mp4') || vehicle.videos[0].includes('.mov') || vehicle.videos[0].includes('.MOV') || vehicle.videos[0].includes('.webm')) ? (
           <Dialog>
             <DialogTrigger asChild>
               <div className="relative aspect-video rounded-lg overflow-hidden bg-muted cursor-pointer group">
