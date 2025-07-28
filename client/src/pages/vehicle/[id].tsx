@@ -163,7 +163,7 @@ export default function VehicleDetails() {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            {vehicle.videos?.[0] && (
+            {vehicle.videos?.[0] && (vehicle.videos[0].includes('.mp4') || vehicle.videos[0].includes('.mov') || vehicle.videos[0].includes('.MOV') || vehicle.videos[0].includes('.webm')) && (
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="w-full">
