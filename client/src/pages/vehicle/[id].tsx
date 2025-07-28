@@ -51,8 +51,10 @@ export default function VehicleDetails() {
   });
 
   const handleBuyNow = async () => {
-    const code = prompt("Please enter your buy code:");
-    if (!code) return;
+    setIsBuyDialogOpen(true);
+  };
+
+  const handleBuyCodeSubmit = async (code: string) => {
     verifyBuyCodeMutation.mutate(code);
   };
 
@@ -252,14 +254,74 @@ export default function VehicleDetails() {
                 </DialogContent>
               </Dialog>
 
-              <Button 
-                variant="default" 
-                className="w-full" 
-                onClick={handleBuyNow}
-                disabled={verifyBuyCodeMutation.isPending}
-              >
-                {verifyBuyCodeMutation.isPending ? "Processing..." : "Buy Now"}
-              </Button>
+              <Dialog open={isBuyDialogOpen} onOpenChange={setIsBuyDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="default" 
+                    className="w-full" 
+                    onClick={handleBuyNow}
+                    disabled={verifyBuyCodeMutation.isPending}
+                  >
+                    {verifyBuyCodeMutation.isPending ? "Processing..." : "Buy Now"}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Purchase Vehicle</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="buyCode" className="block text-sm font-medium mb-2">
+                        Enter your buy code:
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          id="buyCode"
+                          type="text"
+                          placeholder="Enter buy code"
+                          className="flex-1 px-3 py-2 border border-input rounded-md text-sm"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const code = (e.target as HTMLInputElement).value;
+                              if (code.trim()) {
+                                handleBuyCodeSubmit(code.trim());
+                              }
+                            }
+                          }}
+                        />
+                        <Button
+                          onClick={() => {
+                            const input = document.getElementById('buyCode') as HTMLInputElement;
+                            const code = input?.value?.trim();
+                            if (code) {
+                              handleBuyCodeSubmit(code);
+                            }
+                          }}
+                          disabled={verifyBuyCodeMutation.isPending}
+                        >
+                          {verifyBuyCodeMutation.isPending ? "Processing..." : "Submit"}
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium mb-2">Don't have a buy code?</h4>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Contact our team to get approved and receive your buy code:
+                      </p>
+                      <div className="bg-muted/50 p-3 rounded-md">
+                        <p className="font-medium text-sm">Call or Text:</p>
+                        <p className="text-lg font-mono font-bold text-primary">
+                          (555) 123-DEAL
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Available Monday-Friday, 9 AM - 6 PM EST
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardContent>
         </Card>
