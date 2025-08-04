@@ -12,8 +12,6 @@ import { apiRequest } from "@/lib/queryClient";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { Loader2, Upload, VideoIcon, Lock } from "lucide-react";
 import { decodeVIN, vinSchema } from "@/lib/vin";
-import { VinScanner } from "@/components/scanner/VinScanner";
-import { QRLink } from "@/components/ui/qr-link";
 
 type UploadStep = 'password' | 'vin' | 'video' | 'complete';
 
@@ -192,28 +190,19 @@ export default function UploadPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Vehicle Identification Number (VIN)</FormLabel>
-                  <div className="flex gap-2">
-                    <FormControl>
-                      <Input 
-                        placeholder="Enter full 17-character VIN"
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value.toUpperCase();
-                          field.onChange(value);
-                          handleVinChange(value);
-                        }}
-                        maxLength={17}
-                        disabled={isDecodingVin}
-                      />
-                    </FormControl>
-                    <VinScanner 
-                      onScan={(vin) => {
-                        const value = vin.toUpperCase();
-                        vehicleForm.setValue("vin", value);
+                  <FormControl>
+                    <Input 
+                      placeholder="Enter full 17-character VIN"
+                      {...field}
+                      onChange={(e) => {
+                        const value = e.target.value.toUpperCase();
+                        field.onChange(value);
                         handleVinChange(value);
-                      }} 
+                      }}
+                      maxLength={17}
+                      disabled={isDecodingVin}
                     />
-                  </div>
+                  </FormControl>
                   <FormMessage />
                   {isDecodingVin && (
                     <div className="flex items-center text-sm text-muted-foreground">
@@ -276,12 +265,9 @@ export default function UploadPage() {
               />
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 items-start">
-              <Button type="submit" className="md:flex-1">
-                Next <VideoIcon className="ml-2 h-4 w-4" />
-              </Button>
-              <QRLink url={window.location.href} />
-            </div>
+            <Button type="submit" className="w-full">
+              Next <VideoIcon className="ml-2 h-4 w-4" />
+            </Button>
           </form>
         </Form>
       </CardContent>

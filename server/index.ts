@@ -1,3 +1,5 @@
+import "dotenv/config";
+import { env } from "./env";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -55,19 +57,18 @@ app.use((req, res, next) => {
     if (app.get("env") === "development") {
       log('Setting up Vite for development...');
       await setupVite(app, server);
+      log('Vite setup completed successfully!');
     } else {
       log('Setting up static file serving for production...');
       serveStatic(app);
     }
 
-    // Start server
-    const port = 5000;
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      log(`Server running on port ${port}`);
+    // Start server  
+    const port = 3002;
+    server.listen(port, '0.0.0.0', () => {
+      log(`Server running on http://localhost:${port}`);
+      log(`Server also accessible on http://10.1.10.154:${port}`);
+      log(`Mobile access: http://10.1.10.154:${port}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

@@ -1,0 +1,102 @@
+import { VehicleGrid } from "@/components/inventory/VehicleGrid";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { LayoutGrid, List, Search } from "lucide-react";
+import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CertificationInfo } from "@/components/ui/certification-info";
+
+export default function Inventory() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [certificationFilter, setCertificationFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState("newest");
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-12 px-6">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Vehicle Listings</h1>
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            Browse our selection of certified wholesale vehicles from trusted dealers
+          </p>
+        </div>
+      </div>
+
+      <main className="max-w-7xl mx-auto py-8">
+        <div className="px-6">
+          {/* Add Certification Info Component */}
+          <CertificationInfo />
+
+          {/* Search and View Mode */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by make, model, or year..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center border rounded-lg">
+              <Button
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setViewMode("grid")}
+                className="rounded-none rounded-l-lg"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setViewMode("list")}
+                className="rounded-none rounded-r-lg"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Filters Section */}
+          <div className="grid gap-4 md:grid-cols-2 mb-6">
+            {/* Certification Filter */}
+            <Select value={certificationFilter} onValueChange={setCertificationFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by certification" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Listings</SelectItem>
+                <SelectItem value="Deal Machine Certified">Deal Machine Certified</SelectItem>
+                <SelectItem value="Auction Certified">Auction Certified</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort Options */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="price-low">Price: Low to High</SelectItem>
+                <SelectItem value="price-high">Price: High to Low</SelectItem>
+                <SelectItem value="mileage-low">Mileage: Low to High</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <VehicleGrid
+          searchQuery={searchQuery}
+          viewMode={viewMode}
+          certificationFilter={certificationFilter}
+          sortBy={sortBy}
+        />
+      </main>
+    </div>
+  );
+}
