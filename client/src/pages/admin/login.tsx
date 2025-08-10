@@ -66,10 +66,12 @@ export default function AdminLogin() {
         title: "Success",
         description: "Logged in as admin",
       });
+      
       // Invalidate the admin check query to refresh the auth state
       queryClient.invalidateQueries({ queryKey: ["/api/admin/check"] });
-      // Force a small delay to allow the query to invalidate and animation to complete
-      setTimeout(() => setLocation("/admin"), 500);
+      
+      // Try direct navigation first
+      window.location.href = '/admin';
     },
     onError: (error) => {
       toast({
