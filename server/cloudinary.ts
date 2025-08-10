@@ -1,11 +1,11 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { env } from './env';
 
-// Configure Cloudinary
+// Configure Cloudinary - trim any whitespace from env vars
 cloudinary.config({
-  cloud_name: env.CLOUDINARY_CLOUD_NAME,
-  api_key: env.CLOUDINARY_API_KEY,
-  api_secret: env.CLOUDINARY_API_SECRET,
+  cloud_name: env.CLOUDINARY_CLOUD_NAME.trim(),
+  api_key: env.CLOUDINARY_API_KEY.trim(),
+  api_secret: env.CLOUDINARY_API_SECRET.trim(),
 });
 
 export { cloudinary };
@@ -21,13 +21,13 @@ export function generateSignedUploadParams() {
     eager: 'c_thumb,w_300,h_200', // Generate thumbnail
   };
 
-  const signature = cloudinary.utils.api_sign_request(params, env.CLOUDINARY_API_SECRET);
+  const signature = cloudinary.utils.api_sign_request(params, env.CLOUDINARY_API_SECRET.trim());
 
   return {
     ...params,
     signature,
-    api_key: env.CLOUDINARY_API_KEY,
-    cloud_name: env.CLOUDINARY_CLOUD_NAME,
+    api_key: env.CLOUDINARY_API_KEY.trim(),
+    cloud_name: env.CLOUDINARY_CLOUD_NAME.trim(),
   };
 }
 
