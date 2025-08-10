@@ -1,7 +1,12 @@
 {
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
+  "buildCommand": "npm ci && npm run build",
+  "installCommand": "npm ci --omit=dev",
   "framework": null,
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/api" }
   ]

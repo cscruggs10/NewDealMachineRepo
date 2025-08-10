@@ -2,7 +2,17 @@ import "dotenv/config";
 import { env } from "./env";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+
+// Simple log function for serverless
+const log = (message: string, source = "express") => {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit", 
+    second: "2-digit",
+    hour12: true,
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+};
 
 export const app = express();
 app.use(express.json());
@@ -61,6 +71,8 @@ export async function initializeServer() {
     // For production/serverless, serve static files
     if (process.env.NODE_ENV === "production") {
       log('Setting up static file serving...');
+      // Import serveStatic only in production to avoid Vite dependencies
+      const { serveStatic } = await import("./vite");
       serveStatic(app);
     }
 
@@ -80,6 +92,7 @@ if (process.env.NODE_ENV !== "production") {
       const server = await registerRoutes(app);
       
       if (app.get("env") === "development") {
+        const { setupVite } = await import("./vite");
         await setupVite(app, server);
       }
 
