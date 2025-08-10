@@ -116,6 +116,15 @@ export default function UploadPage() {
           videos: uploadedVideos,
         };
 
+        console.log('Submitting vehicle data:', vehicleData);
+        console.log('Data types:', {
+          vin: typeof vehicleData.vin,
+          year: typeof vehicleData.year,
+          make: typeof vehicleData.make,
+          model: typeof vehicleData.model,
+          videos: Array.isArray(vehicleData.videos)
+        });
+
         return apiRequest("POST", "/api/vehicles", vehicleData);
       } catch (error) {
         console.error('Upload/creation error:', error);

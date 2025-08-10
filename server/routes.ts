@@ -295,8 +295,18 @@ export async function registerRoutes(app: Express) {
 
   // Vehicle upload routes
   app.post("/api/vehicles", async (req, res) => {
+    console.log('Received vehicle data:', req.body);
+    console.log('Data types received:', {
+      vin: typeof req.body.vin,
+      year: typeof req.body.year,
+      make: typeof req.body.make,
+      model: typeof req.body.model,
+      videos: Array.isArray(req.body.videos)
+    });
+    
     const result = createInitialVehicleSchema.safeParse(req.body);
     if (!result.success) {
+      console.error('Schema validation failed:', result.error.format());
       return res.status(400).json({ message: result.error.message });
     }
 
