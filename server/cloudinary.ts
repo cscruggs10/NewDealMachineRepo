@@ -16,7 +16,7 @@ export function generateSignedUploadParams() {
   
   const params = {
     timestamp,
-    folder: 'dealmachine/vehicle-videos',
+    folder: 'dealmachine-vehicle-videos',
     resource_type: 'video',
     eager: 'c_thumb,w_300,h_200', // Generate thumbnail
   };
