@@ -124,12 +124,15 @@ async function decodeVIN(vin: string) {
 async function requireAdmin(req: Request, res: Response, next: Function) {
   // Check for token in Authorization header first (for serverless)
   const authHeader = req.headers.authorization;
+  console.log('RequireAdmin - Auth header:', authHeader);
   let adminEmail: string | undefined;
   
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
+    console.log('RequireAdmin - Token found:', token);
     try {
       const decoded = Buffer.from(token, 'base64').toString('utf-8');
+      console.log('RequireAdmin - Decoded token:', decoded);
       const [type, email, timestamp] = decoded.split(':');
       
       if (type === 'admin' && email) {
@@ -137,6 +140,7 @@ async function requireAdmin(req: Request, res: Response, next: Function) {
         const tokenAge = Date.now() - parseInt(timestamp);
         if (tokenAge < 24 * 60 * 60 * 1000) {
           adminEmail = email;
+          console.log('RequireAdmin - Admin email from token:', adminEmail);
         }
       }
     } catch (e) {
@@ -214,6 +218,7 @@ export async function registerRoutes(app: Express) {
 
   // Protect admin routes
   app.get("/api/admin/check", requireAdmin, (req, res) => {
+    console.log('Admin check passed for:', req.session?.adminEmail || 'token auth');
     res.json({ authorized: true });
   });
   
