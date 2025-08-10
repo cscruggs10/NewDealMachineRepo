@@ -338,7 +338,8 @@ export async function registerRoutes(app: Express) {
   app.get("/api/health", async (req, res) => {
     try {
       // Test database connection
-      const testQuery = await storage.db.execute(sql`SELECT 1 as test`);
+      const { db } = await import("./db");
+      const testQuery = await db.execute(sql`SELECT 1 as test`);
       
       res.json({
         status: "OK",
