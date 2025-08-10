@@ -143,9 +143,19 @@ export default function UploadPage() {
       setWalkaroundVideo(null);
     },
     onError: (error: any) => {
+      // Create detailed error message for debugging
+      const errorDetails = `Error: ${error.message || "Failed to add vehicle"}
+      
+Debug Info:
+- VIN: ${vehicleForm.getValues('vin')} (${typeof vehicleForm.getValues('vin')})
+- Year: ${vehicleForm.getValues('year')} (${typeof vehicleForm.getValues('year')})
+- Make: ${vehicleForm.getValues('make')} (${typeof vehicleForm.getValues('make')})
+- Model: ${vehicleForm.getValues('model')} (${typeof vehicleForm.getValues('model')})
+- Videos: ${vehicleForm.getValues('videos')?.length || 0} files`;
+
       toast({
-        title: "Error",
-        description: error.message || "Failed to add vehicle",
+        title: "Upload Failed",
+        description: errorDetails,
         variant: "destructive",
       });
     },
@@ -178,7 +188,12 @@ export default function UploadPage() {
           });
           return;
         }
-        createVehicle.mutate(vehicleForm.getValues());
+        // Get only the fields we need for initial vehicle creation
+        const formData = {
+          vin: vehicleForm.getValues('vin'),
+          videos: [] // Will be populated during upload
+        };
+        createVehicle.mutate(formData);
         break;
     }
   };
