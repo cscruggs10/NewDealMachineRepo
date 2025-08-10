@@ -32,10 +32,6 @@ export default function UploadPage() {
     resolver: zodResolver(createInitialVehicleSchema),
     defaultValues: {
       vin: "",
-      year: "",
-      make: "",
-      model: "",
-      trim: "",
       videos: [],
     },
   });
@@ -68,7 +64,9 @@ export default function UploadPage() {
         vehicleForm.setValue("vin", vin);
 
         // Then set other vehicle information
-        vehicleForm.setValue("year", vehicleInfo.year);
+        if (vehicleInfo.year) {
+          vehicleForm.setValue("year", parseInt(vehicleInfo.year));
+        }
         vehicleForm.setValue("make", vehicleInfo.make);
         vehicleForm.setValue("model", vehicleInfo.model);
         vehicleForm.setValue("trim", vehicleInfo.trim);
