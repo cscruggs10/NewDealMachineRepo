@@ -1,7 +1,7 @@
 import imageCompression from 'browser-image-compression';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v', 'video/3gpp', 'video/3gpp2'];
 const MAX_IMAGE_SIZE_MB = 2;
 const MAX_VIDEO_SIZE_MB = 200; // Increased to support larger videos
 

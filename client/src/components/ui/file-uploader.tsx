@@ -11,7 +11,7 @@ interface FileUploaderProps {
 }
 
 export function FileUploader({
-  accept = "video/mp4,video/quicktime,video/x-m4v,video/webm", // Updated to support iOS formats
+  accept = "video/*", // Accept all video formats for better mobile compatibility
   maxFiles = 1,
   onFilesSelected,
   className,

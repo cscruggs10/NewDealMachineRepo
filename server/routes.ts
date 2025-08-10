@@ -42,6 +42,10 @@ const upload = multer({
       'video/quicktime',
       'video/x-m4v',
       'video/webm',
+      'video/3gpp',
+      'video/3gpp2',
+      'video/x-msvideo',
+      'video/mpeg',
       'application/pdf',
       'image/jpeg',
       'image/png'
