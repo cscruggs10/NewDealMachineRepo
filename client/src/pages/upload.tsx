@@ -138,10 +138,25 @@ export default function UploadPage() {
         addDebug(`Final vehicle data being sent: ${JSON.stringify(vehicleData)}`);
         addDebug(`Data types: vin=${typeof vehicleData.vin}, videos=${Array.isArray(vehicleData.videos) ? 'array' : typeof vehicleData.videos}`);
 
-        const response = await apiRequest("POST", "/api/vehicles", vehicleData);
-        const result = await response.json();
-        addDebug(`Vehicle creation successful: ${JSON.stringify(result)}`);
-        return result;
+        try {
+          addDebug("Calling POST /api/vehicles...");
+          const response = await apiRequest("POST", "/api/vehicles", vehicleData);
+          const result = await response.json();
+          addDebug(`Vehicle creation successful: ${JSON.stringify(result)}`);
+          return result;
+        } catch (apiError: any) {
+          addDebug(`API Error: ${apiError.message}`);
+          // Try the test endpoint to see if that works
+          addDebug("Trying test endpoint /api/test-vehicle...");
+          const testResponse = await fetch("/api/test-vehicle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(vehicleData)
+          });
+          const testResult = await testResponse.json();
+          addDebug(`Test endpoint response: ${JSON.stringify(testResult)}`);
+          throw apiError; // Re-throw original error
+        }
       } catch (error: any) {
         addDebug(`ERROR: ${error.message}`);
         addDebug(`Error stack: ${error.stack}`);
