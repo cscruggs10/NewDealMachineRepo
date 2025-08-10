@@ -122,10 +122,33 @@ async function decodeVIN(vin: string) {
 
 
 async function requireAdmin(req: Request, res: Response, next: Function) {
-  console.log('RequireAdmin check - Session:', req.session);
-  console.log('RequireAdmin check - Admin email:', req.session?.adminEmail);
+  // Check for token in Authorization header first (for serverless)
+  const authHeader = req.headers.authorization;
+  let adminEmail: string | undefined;
   
-  const adminEmail = req.session?.adminEmail;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = Buffer.from(token, 'base64').toString('utf-8');
+      const [type, email, timestamp] = decoded.split(':');
+      
+      if (type === 'admin' && email) {
+        // Check if token is not too old (24 hours)
+        const tokenAge = Date.now() - parseInt(timestamp);
+        if (tokenAge < 24 * 60 * 60 * 1000) {
+          adminEmail = email;
+        }
+      }
+    } catch (e) {
+      console.error('Token decode error:', e);
+    }
+  }
+  
+  // Fall back to session if no valid token
+  if (!adminEmail) {
+    adminEmail = req.session?.adminEmail;
+  }
+  
   if (!adminEmail) {
     return res.status(401).json({ message: "Admin authentication required" });
   }
@@ -169,16 +192,14 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Not authorized as admin" });
       }
 
-      // Set admin session
-      req.session.adminEmail = email;
+      // For serverless, we'll use a simple token approach
+      // In production, you'd want to use JWT or similar
+      const token = Buffer.from(`admin:${email}:${Date.now()}`).toString('base64');
       
-      // Save session explicitly
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-          return res.status(500).json({ message: "Failed to save session" });
-        }
-        res.json({ message: "Admin login successful" });
+      res.json({ 
+        message: "Admin login successful",
+        token: token,
+        email: email
       });
     } catch (error) {
       console.error('Admin login error:', error);
@@ -194,6 +215,16 @@ export async function registerRoutes(app: Express) {
   // Protect admin routes
   app.get("/api/admin/check", requireAdmin, (req, res) => {
     res.json({ authorized: true });
+  });
+  
+  // Debug endpoint to check session
+  app.get("/api/session-debug", (req, res) => {
+    res.json({
+      hasSession: !!req.session,
+      sessionId: req.sessionID,
+      adminEmail: req.session?.adminEmail,
+      sessionData: req.session
+    });
   });
 
 

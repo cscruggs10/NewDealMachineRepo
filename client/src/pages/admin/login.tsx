@@ -54,7 +54,13 @@ export default function AdminLogin() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Store the token if provided
+      if (data.token) {
+        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('adminEmail', data.email);
+      }
+      
       setIsRedirecting(true);
       toast({
         title: "Success",
