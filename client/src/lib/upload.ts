@@ -71,15 +71,30 @@ export async function uploadVideoToCloudinary(file: File): Promise<{ videoUrl: s
 
     const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${uploadParams.cloud_name}/upload`;
     
-    console.log("Uploading to Cloudinary...");
+    console.log("Uploading to Cloudinary URL:", cloudinaryUrl);
+    console.log("FormData contents:", {
+      timestamp: uploadParams.timestamp.toString(),
+      signature: uploadParams.signature,
+      api_key: uploadParams.api_key,
+      folder: uploadParams.folder,
+      resource_type: uploadParams.resource_type,
+      eager: uploadParams.eager
+    });
+    
     const uploadResponse = await fetch(cloudinaryUrl, {
       method: 'POST',
       body: formData,
     });
 
     if (!uploadResponse.ok) {
-      const error = await uploadResponse.text();
-      throw new Error(`Cloudinary upload failed: ${error}`);
+      let errorText;
+      try {
+        errorText = await uploadResponse.text();
+      } catch (e) {
+        errorText = 'Unknown error';
+      }
+      console.error('Cloudinary response:', uploadResponse.status, errorText);
+      throw new Error(`Cloudinary upload failed: ${errorText}`);
     }
 
     const result = await uploadResponse.json();
