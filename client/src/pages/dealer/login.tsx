@@ -47,7 +47,9 @@ export default function DealerLogin() {
         title: "Success",
         description: "Logged in successfully",
       });
-      setLocation("/dealer/dashboard");
+      
+      // Use direct navigation instead of router
+      window.location.href = '/dealer/dashboard';
     },
     onError: (error) => {
       toast({
