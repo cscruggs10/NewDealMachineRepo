@@ -83,23 +83,9 @@ export const insertDealerSchema = createInsertSchema(dealers).omit({
   createdAt: true,
 });
 
-export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({
-  id: true,
-  status: true,
-  inQueue: true,
-  mileage: true,
-  price: true,
-  condition: true,
-  description: true,
-  billOfSale: true,
-  isPaid: true,
-}).extend({
+export const createInitialVehicleSchema = z.object({
   vin: z.string().length(17, "Please enter the full 17-character VIN"),
-  year: z.number().optional(),
-  make: z.string().optional(),
-  model: z.string().optional(),
-  trim: z.string().optional(),
-  videos: z.array(z.string()).optional(),
+  videos: z.array(z.string()).optional().default([]),
 });
 
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({
