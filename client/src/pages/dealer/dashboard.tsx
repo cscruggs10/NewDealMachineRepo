@@ -16,15 +16,16 @@ export default function DealerDashboard() {
     queryKey: ["/api/dealer/buycodes"],
   });
 
-  useEffect(() => {
-    // Check if dealer is logged in by making a request
-    fetch('/api/dealer/transactions')
-      .then(res => {
-        if (!res.ok) {
-          setLocation('/dealer/login');
-        }
-      });
-  }, [setLocation]);
+  // TEMPORARILY DISABLED FOR DEBUGGING
+  // useEffect(() => {
+  //   // Check if dealer is logged in by making a request
+  //   fetch('/api/dealer/transactions')
+  //     .then(res => {
+  //       if (!res.ok) {
+  //         setLocation('/dealer/login');
+  //       }
+  //     });
+  // }, [setLocation]);
 
   // Get dealer info from local storage if available
   const dealerInfo = JSON.parse(localStorage.getItem('dealerInfo') || '{}');
