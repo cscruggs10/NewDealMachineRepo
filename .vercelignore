@@ -1,0 +1,7 @@
+uploads/
+node_modules/
+.git/
+.local/
+*.log
+.env.local
+.env.*.local
