@@ -147,14 +147,22 @@ export default function UploadPage() {
         } catch (apiError: any) {
           addDebug(`API Error: ${apiError.message}`);
           // Try the test endpoint to see if that works
-          addDebug("Trying test endpoint /api/test-vehicle...");
-          const testResponse = await fetch("/api/test-vehicle", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(vehicleData)
-          });
-          const testResult = await testResponse.json();
-          addDebug(`Test endpoint response: ${JSON.stringify(testResult)}`);
+          try {
+            addDebug("Trying test endpoint /api/test-vehicle...");
+            const testResponse = await fetch("/api/test-vehicle", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(vehicleData)
+            });
+            if (testResponse.ok) {
+              const testResult = await testResponse.json();
+              addDebug(`Test endpoint successful: ${JSON.stringify(testResult)}`);
+            } else {
+              addDebug(`Test endpoint failed: ${testResponse.status} ${testResponse.statusText}`);
+            }
+          } catch (testError: any) {
+            addDebug(`Test endpoint error: ${testError.message}`);
+          }
           throw apiError; // Re-throw original error
         }
       } catch (error: any) {
