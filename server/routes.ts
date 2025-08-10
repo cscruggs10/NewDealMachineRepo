@@ -9,6 +9,7 @@ import express from 'express';
 import fs from 'fs';
 import fetch from 'node-fetch';
 import session from 'express-session';
+import { tmpdir } from 'os';
 
 // Modify the generateBuyCode function to create 4-character codes
 function generateBuyCode(): string {
@@ -20,8 +21,12 @@ function generateBuyCode(): string {
   return code;
 }
 
+// Use system temp directory for serverless compatibility  
+const uploadDir = process.env.NODE_ENV === 'production' 
+  ? path.join(tmpdir(), 'uploads') 
+  : path.join(process.cwd(), 'uploads');
+
 // Ensure uploads directory exists
-const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
