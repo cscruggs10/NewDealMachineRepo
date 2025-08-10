@@ -386,7 +386,7 @@ export async function registerRoutes(app: Express) {
   // Test Cloudinary configuration
   app.get("/api/cloudinary-test", async (req, res) => {
     try {
-      const { cloudinary } = await import("./cloudinary");
+      const { cloudinary, generateSignedUploadParams } = await import("./cloudinary");
       
       // Test if we can access Cloudinary API
       const timestamp = Math.round(new Date().getTime() / 1000);
@@ -397,7 +397,10 @@ export async function registerRoutes(app: Express) {
       };
       
       // Generate a test signature
-      const signature = cloudinary.utils.api_sign_request(testParams, process.env.CLOUDINARY_API_SECRET);
+      const signature = cloudinary.utils.api_sign_request(testParams, process.env.CLOUDINARY_API_SECRET?.trim() || '');
+      
+      // Also test the actual upload params generation
+      const uploadParams = generateSignedUploadParams();
       
       res.json({
         status: "OK",
@@ -405,14 +408,17 @@ export async function registerRoutes(app: Express) {
           hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
           hasApiKey: !!process.env.CLOUDINARY_API_KEY,
           hasApiSecret: !!process.env.CLOUDINARY_API_SECRET,
-          cloudNameLength: process.env.CLOUDINARY_CLOUD_NAME?.length,
-          apiKeyLength: process.env.CLOUDINARY_API_KEY?.length,
-          apiSecretLength: process.env.CLOUDINARY_API_SECRET?.length
+          cloudNameLength: process.env.CLOUDINARY_CLOUD_NAME?.trim().length,
+          apiKeyLength: process.env.CLOUDINARY_API_KEY?.trim().length,
+          apiSecretLength: process.env.CLOUDINARY_API_SECRET?.trim().length,
+          cloudNameValue: process.env.CLOUDINARY_CLOUD_NAME?.trim(),
+          apiKeyValue: process.env.CLOUDINARY_API_KEY?.trim()
         },
         testSignature: {
           generated: !!signature,
           timestamp: timestamp
-        }
+        },
+        actualUploadParams: uploadParams
       });
     } catch (error) {
       console.error('Cloudinary test error:', error);
@@ -424,6 +430,38 @@ export async function registerRoutes(app: Express) {
           hasApiKey: !!process.env.CLOUDINARY_API_KEY,
           hasApiSecret: !!process.env.CLOUDINARY_API_SECRET
         }
+      });
+    }
+  });
+
+  // Test Cloudinary direct upload
+  app.post("/api/cloudinary-test-upload", async (req, res) => {
+    try {
+      const { cloudinary } = await import("./cloudinary");
+      
+      // Upload a test image
+      const result = await cloudinary.uploader.upload(
+        "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzQyODVGNCIvPjwvc3ZnPg==",
+        {
+          folder: 'dealmachine-vehicle-videos',
+          resource_type: 'auto',
+          public_id: 'test-' + Date.now()
+        }
+      );
+      
+      res.json({
+        success: true,
+        result: {
+          public_id: result.public_id,
+          url: result.secure_url,
+          folder: result.folder
+        }
+      });
+    } catch (error) {
+      console.error('Test upload error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message 
       });
     }
   });
