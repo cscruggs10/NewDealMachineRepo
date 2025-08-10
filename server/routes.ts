@@ -383,6 +383,51 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Test Cloudinary configuration
+  app.get("/api/cloudinary-test", async (req, res) => {
+    try {
+      const { cloudinary } = await import("./cloudinary");
+      
+      // Test if we can access Cloudinary API
+      const timestamp = Math.round(new Date().getTime() / 1000);
+      const testParams = {
+        timestamp,
+        folder: 'dealmachine-vehicle-videos',
+        resource_type: 'video'
+      };
+      
+      // Generate a test signature
+      const signature = cloudinary.utils.api_sign_request(testParams, process.env.CLOUDINARY_API_SECRET);
+      
+      res.json({
+        status: "OK",
+        environment: {
+          hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+          hasApiKey: !!process.env.CLOUDINARY_API_KEY,
+          hasApiSecret: !!process.env.CLOUDINARY_API_SECRET,
+          cloudNameLength: process.env.CLOUDINARY_CLOUD_NAME?.length,
+          apiKeyLength: process.env.CLOUDINARY_API_KEY?.length,
+          apiSecretLength: process.env.CLOUDINARY_API_SECRET?.length
+        },
+        testSignature: {
+          generated: !!signature,
+          timestamp: timestamp
+        }
+      });
+    } catch (error) {
+      console.error('Cloudinary test error:', error);
+      res.status(500).json({ 
+        status: "ERROR",
+        error: error.message,
+        environment: {
+          hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+          hasApiKey: !!process.env.CLOUDINARY_API_KEY,
+          hasApiSecret: !!process.env.CLOUDINARY_API_SECRET
+        }
+      });
+    }
+  });
+
   // Vehicle upload routes
   app.post("/api/vehicles", async (req, res) => {
     console.log('Received vehicle data:', req.body);
