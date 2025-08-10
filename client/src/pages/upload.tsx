@@ -103,7 +103,10 @@ export default function UploadPage() {
         
         let uploadedVideos: string[] = [];
 
-        if (walkaroundVideo) {
+        // Check if this is a test run (no video upload)
+        if (data.skipVideoUpload) {
+          addDebug("Skipping video upload (test mode)");
+        } else if (walkaroundVideo) {
           addDebug(`Video file: ${walkaroundVideo.name}, Size: ${(walkaroundVideo.size / 1024 / 1024).toFixed(2)}MB, Type: ${walkaroundVideo.type}`);
           
           const formData = new FormData();
@@ -130,8 +133,10 @@ export default function UploadPage() {
           addDebug("No video file to upload");
         }
 
+        // Clean the data (remove test flags)
+        const { skipVideoUpload, ...cleanData } = data;
         const vehicleData = {
-          ...data,
+          ...cleanData,
           videos: uploadedVideos,
         };
 
@@ -444,7 +449,8 @@ Debug Info:
                     addDebug("Testing without video upload");
                     const testData = {
                       vin: vehicleForm.getValues('vin'),
-                      videos: []
+                      videos: [],
+                      skipVideoUpload: true
                     };
                     createVehicle.mutate(testData);
                   }}
