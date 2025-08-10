@@ -122,7 +122,10 @@ async function decodeVIN(vin: string) {
 
 
 async function requireAdmin(req: Request, res: Response, next: Function) {
-  const adminEmail = req.session.adminEmail;
+  console.log('RequireAdmin check - Session:', req.session);
+  console.log('RequireAdmin check - Admin email:', req.session?.adminEmail);
+  
+  const adminEmail = req.session?.adminEmail;
   if (!adminEmail) {
     return res.status(401).json({ message: "Admin authentication required" });
   }
@@ -144,10 +147,15 @@ export async function registerRoutes(app: Express) {
   // Add session middleware
   app.use(
     session({
-      secret: 'your-secret-key',
+      secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: process.env.NODE_ENV === 'production' }
+      cookie: { 
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      }
     })
   );
 
@@ -163,8 +171,15 @@ export async function registerRoutes(app: Express) {
 
       // Set admin session
       req.session.adminEmail = email;
-
-      res.json({ message: "Admin login successful" });
+      
+      // Save session explicitly
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.status(500).json({ message: "Failed to save session" });
+        }
+        res.json({ message: "Admin login successful" });
+      });
     } catch (error) {
       console.error('Admin login error:', error);
       res.status(500).json({ message: "Admin login failed" });
