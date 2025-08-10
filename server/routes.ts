@@ -310,10 +310,24 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid status value" });
       }
 
+      const vehicleId = parseInt(req.params.id);
+      
+      // Get the current vehicle to check if status is changing
+      const currentVehicle = await storage.getVehicle(vehicleId);
+      if (!currentVehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
       const vehicle = await storage.updateVehicle(
-        parseInt(req.params.id),
+        vehicleId,
         { status, inQueue, ...otherUpdates }
       );
+
+      // If vehicle is being re-listed (changed to 'active'), cancel existing transactions
+      if (status === 'active' && currentVehicle.status !== 'active') {
+        console.log(`Vehicle ${vehicleId} re-listed - cancelling existing transactions`);
+        await storage.cancelVehicleTransactions(vehicleId);
+      }
 
       res.json(vehicle);
     } catch (error) {

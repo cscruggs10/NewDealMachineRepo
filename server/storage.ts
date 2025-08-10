@@ -9,7 +9,7 @@ import {
   adminUsers,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Vehicles
@@ -39,6 +39,7 @@ export interface IStorage {
   getDealerTransactions(dealerId: number): Promise<Transaction[]>;
   getTransactions(): Promise<Transaction[]>;
   updateTransaction(id: number, update: Partial<Transaction>): Promise<Transaction>;
+  cancelVehicleTransactions(vehicleId: number): Promise<void>;
 
   // Offers
   getOffers(vehicleId: number): Promise<Offer[]>;
@@ -171,7 +172,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDealerTransactions(dealerId: number): Promise<Transaction[]> {
-    return db.select().from(transactions).where(eq(transactions.dealerId, dealerId));
+    return db.select().from(transactions)
+      .where(and(
+        eq(transactions.dealerId, dealerId),
+        eq(transactions.cancelled, false)
+      )); // Only show non-cancelled transactions
   }
 
   async getTransactions(): Promise<Transaction[]> {
@@ -185,6 +190,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(transactions.id, id))
       .returning();
     return transaction;
+  }
+
+  async cancelVehicleTransactions(vehicleId: number): Promise<void> {
+    await db
+      .update(transactions)
+      .set({ cancelled: true })
+      .where(eq(transactions.vehicleId, vehicleId));
   }
 
   // Offers

@@ -60,6 +60,7 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   isPaid: boolean("is_paid").default(false),
   billOfSale: text("bill_of_sale"), // URL to uploaded bill of sale document
+  cancelled: boolean("cancelled").notNull().default(false), // Mark transaction as cancelled when vehicle is re-listed
 });
 
 export const offers = pgTable("offers", {
@@ -120,6 +121,7 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   createdAt: true,
   isPaid: true,
   billOfSale: true,
+  cancelled: true,
 });
 
 export const insertOfferSchema = createInsertSchema(offers).omit({
