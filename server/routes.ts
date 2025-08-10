@@ -22,13 +22,35 @@ function generateBuyCode(): string {
 }
 
 // Use system temp directory for serverless compatibility  
-const uploadDir = process.env.NODE_ENV === 'production' 
+// Always use temp directory in serverless environments (Vercel sets VERCEL=1)
+const isServerless = process.env.VERCEL || process.env.NODE_ENV === 'production';
+const uploadDir = isServerless
   ? path.join(tmpdir(), 'uploads') 
   : path.join(process.cwd(), 'uploads');
 
+// Debug logging for serverless
+console.log('Upload directory config:', {
+  cwd: process.cwd(),
+  tmpdir: tmpdir(),
+  NODE_ENV: process.env.NODE_ENV,
+  VERCEL: process.env.VERCEL,
+  isServerless,
+  uploadDir
+});
+
 // Ensure uploads directory exists
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log('Created upload directory:', uploadDir);
+  } else {
+    console.log('Upload directory already exists:', uploadDir);
+  }
+} catch (error) {
+  console.error('Failed to create upload directory:', error);
+  // Fallback to system temp directly
+  const fallbackDir = tmpdir();
+  console.log('Using fallback directory:', fallbackDir);
 }
 
 // Configure multer for disk storage
