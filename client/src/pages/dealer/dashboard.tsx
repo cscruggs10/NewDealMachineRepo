@@ -10,10 +10,12 @@ export default function DealerDashboard() {
 
   const { data: transactions } = useQuery<(Transaction & { vehicle?: Vehicle })[]>({
     queryKey: ["/api/dealer/transactions"],
+    retry: false,
   });
 
   const { data: buyCodes } = useQuery<BuyCode[]>({
     queryKey: ["/api/dealer/buycodes"],
+    retry: false,
   });
 
   // TEMPORARILY DISABLED FOR DEBUGGING

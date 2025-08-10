@@ -32,6 +32,7 @@ export async function apiRequest(
   const adminToken = localStorage.getItem('adminToken');
   if (adminToken) {
     headers['Authorization'] = `Bearer ${adminToken}`;
+    console.log('Sending admin token with request to:', url);
   }
   
   if (data) {
@@ -61,6 +62,7 @@ export const getQueryFn: <T>(options: {
     const adminToken = localStorage.getItem('adminToken');
     if (adminToken) {
       headers['Authorization'] = `Bearer ${adminToken}`;
+      console.log('Sending admin token with GET request to:', queryKey[0]);
     }
     
     const res = await fetch(queryKey[0] as string, {
@@ -79,7 +81,7 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: "returnNull" }), // Changed from "throw" to "returnNull"
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
@@ -87,6 +89,10 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       retry: false,
+      onError: (error) => {
+        // Don't do anything on 401s - let components handle it
+        console.error('Mutation error:', error);
+      },
     },
   },
 });

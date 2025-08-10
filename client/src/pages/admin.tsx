@@ -42,6 +42,8 @@ export default function Admin() {
 
   const { data: vehicles } = useQuery<Vehicle[]>({
     queryKey: ["/api/vehicles"],
+    // Don't throw on auth errors
+    retry: false,
   });
 
   const { data: offers } = useQuery<Offer[]>({
