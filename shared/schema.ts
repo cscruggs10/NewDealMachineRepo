@@ -87,10 +87,6 @@ export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({
   id: true,
   status: true,
   inQueue: true,
-  make: true,
-  model: true,
-  trim: true,
-  year: true,
   mileage: true,
   price: true,
   condition: true,
@@ -99,6 +95,10 @@ export const createInitialVehicleSchema = createInsertSchema(vehicles).omit({
   isPaid: true,
 }).extend({
   vin: z.string().length(17, "Please enter the full 17-character VIN"),
+  year: z.number().optional(),
+  make: z.string().optional(),
+  model: z.string().optional(),
+  trim: z.string().optional(),
   videos: z.array(z.string()).optional(),
 });
 
