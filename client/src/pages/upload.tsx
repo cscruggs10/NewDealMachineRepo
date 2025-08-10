@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { Loader2, Upload, VideoIcon, Lock } from "lucide-react";
 import { decodeVIN, vinSchema } from "@/lib/vin";
+import { uploadVideoToCloudinary } from "@/lib/upload";
 
 type UploadStep = 'password' | 'vin' | 'video' | 'complete';
 
@@ -109,26 +110,11 @@ export default function UploadPage() {
         } else if (walkaroundVideo) {
           addDebug(`Video file: ${walkaroundVideo.name}, Size: ${(walkaroundVideo.size / 1024 / 1024).toFixed(2)}MB, Type: ${walkaroundVideo.type}`);
           
-          const formData = new FormData();
-          formData.append('files', walkaroundVideo);
+          addDebug("Uploading video to Cloudinary...");
+          const { videoUrl, thumbnailUrl } = await uploadVideoToCloudinary(walkaroundVideo);
           
-          addDebug("Uploading video to /api/upload...");
-          const uploadResponse = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData
-          });
-
-          addDebug(`Upload response status: ${uploadResponse.status}`);
-          
-          if (!uploadResponse.ok) {
-            const errorText = await uploadResponse.text();
-            addDebug(`Upload failed: ${errorText}`);
-            throw new Error(errorText || 'Failed to upload video');
-          }
-
-          const urls = await uploadResponse.json();
-          addDebug(`Upload successful. URLs received: ${JSON.stringify(urls)}`);
-          uploadedVideos = urls;
+          addDebug(`Cloudinary upload successful. Video: ${videoUrl}, Thumbnail: ${thumbnailUrl}`);
+          uploadedVideos = [videoUrl];
         } else {
           addDebug("No video file to upload");
         }

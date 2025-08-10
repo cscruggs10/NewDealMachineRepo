@@ -38,6 +38,64 @@ export function validateVideo(file: File): void {
   }
 }
 
+// New Cloudinary upload function
+export async function uploadVideoToCloudinary(file: File): Promise<{ videoUrl: string; thumbnailUrl: string }> {
+  console.log("Uploading video to Cloudinary:", file.name);
+
+  // Validate video
+  validateVideo(file);
+
+  try {
+    // Get signed upload parameters from server
+    const signatureResponse = await fetch('/api/cloudinary-signature', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!signatureResponse.ok) {
+      throw new Error('Failed to get upload signature');
+    }
+
+    const uploadParams = await signatureResponse.json();
+
+    // Upload directly to Cloudinary
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('timestamp', uploadParams.timestamp);
+    formData.append('signature', uploadParams.signature);
+    formData.append('api_key', uploadParams.api_key);
+    formData.append('folder', uploadParams.folder);
+    formData.append('resource_type', uploadParams.resource_type);
+    formData.append('eager', uploadParams.eager);
+
+    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${uploadParams.cloud_name}/upload`;
+    
+    console.log("Uploading to Cloudinary...");
+    const uploadResponse = await fetch(cloudinaryUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!uploadResponse.ok) {
+      const error = await uploadResponse.text();
+      throw new Error(`Cloudinary upload failed: ${error}`);
+    }
+
+    const result = await uploadResponse.json();
+    console.log("Cloudinary upload successful:", result);
+
+    // Generate URLs
+    const videoUrl = result.secure_url;
+    const thumbnailUrl = result.eager[0]?.secure_url || videoUrl.replace(/\.[^.]*$/, '.jpg');
+
+    return { videoUrl, thumbnailUrl };
+  } catch (error) {
+    console.error("Cloudinary upload failed:", error);
+    throw new Error(`Failed to upload video: ${error.message}`);
+  }
+}
+
+// Legacy function - keeping for images if needed
 export async function uploadMedia(files: File[]): Promise<string[]> {
   console.log("Starting media upload for files:", files.map(f => f.name));
 

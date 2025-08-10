@@ -371,6 +371,18 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Cloudinary signature endpoint
+  app.post("/api/cloudinary-signature", async (req, res) => {
+    try {
+      const { generateSignedUploadParams } = await import("./cloudinary");
+      const signedParams = generateSignedUploadParams();
+      res.json(signedParams);
+    } catch (error) {
+      console.error('Error generating Cloudinary signature:', error);
+      res.status(500).json({ message: "Failed to generate upload signature" });
+    }
+  });
+
   // Vehicle upload routes
   app.post("/api/vehicles", async (req, res) => {
     console.log('Received vehicle data:', req.body);

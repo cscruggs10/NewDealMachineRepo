@@ -20,6 +20,11 @@ const envSchema = z.object({
   // Google Sheets API (optional)
   GOOGLE_SHEETS_PRIVATE_KEY: z.string().optional(),
   GOOGLE_SHEETS_CLIENT_EMAIL: z.string().email().optional(),
+  
+  // Cloudinary Configuration
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, "CLOUDINARY_CLOUD_NAME is required"),
+  CLOUDINARY_API_KEY: z.string().min(1, "CLOUDINARY_API_KEY is required"),
+  CLOUDINARY_API_SECRET: z.string().min(1, "CLOUDINARY_API_SECRET is required"),
 });
 
 export type Env = z.infer<typeof envSchema>;
