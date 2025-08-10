@@ -3,7 +3,7 @@ import imageCompression from 'browser-image-compression';
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm'];
 const MAX_IMAGE_SIZE_MB = 2;
-const MAX_VIDEO_SIZE_MB = 50;
+const MAX_VIDEO_SIZE_MB = 200; // Increased to support larger videos
 
 export async function compressImage(file: File): Promise<File> {
   console.log("Compressing image:", file.name);
@@ -71,6 +71,14 @@ export async function uploadMedia(files: File[]): Promise<string[]> {
 
     if (!response.ok) {
       const error = await response.text();
+      console.error('Upload response error:', response.status, error);
+      
+      if (response.status === 413) {
+        throw new Error('File too large. Please try a smaller video.');
+      } else if (response.status === 500) {
+        throw new Error('Server error during upload. Please try again.');
+      }
+      
       throw new Error(`Upload failed: ${error}`);
     }
 
