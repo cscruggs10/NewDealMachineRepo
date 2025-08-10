@@ -104,7 +104,7 @@ export default function UploadPage() {
 
           if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to upload video');
+            throw new Error(errorData.message || errorData.error || 'Failed to upload video');
           }
 
           const urls = await response.json();
@@ -125,7 +125,8 @@ export default function UploadPage() {
           videos: Array.isArray(vehicleData.videos)
         });
 
-        return apiRequest("POST", "/api/vehicles", vehicleData);
+        const response = await apiRequest("POST", "/api/vehicles", vehicleData);
+        return response.json();
       } catch (error) {
         console.error('Upload/creation error:', error);
         throw error;

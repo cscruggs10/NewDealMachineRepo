@@ -306,8 +306,14 @@ export async function registerRoutes(app: Express) {
     
     const result = createInitialVehicleSchema.safeParse(req.body);
     if (!result.success) {
-      console.error('Schema validation failed:', result.error.format());
-      return res.status(400).json({ message: result.error.message });
+      console.error('Schema validation failed:', JSON.stringify(result.error.format(), null, 2));
+      const firstError = result.error.issues[0];
+      return res.status(400).json({ 
+        message: firstError.message,
+        field: firstError.path.join('.'),
+        code: firstError.code,
+        details: result.error.format()
+      });
     }
 
     try {
