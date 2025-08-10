@@ -1,8 +1,8 @@
 // Vercel serverless function handler
 export default async function handler(req, res) {
   try {
-    // Import and initialize the app
-    const { initializeServer } = await import('../dist/index.js');
+    // Import the clean serverless version (no Vite dependencies)
+    const { initializeServer } = await import('../dist/serverless.js');
     const app = await initializeServer();
     
     // Use the Express app as handler
