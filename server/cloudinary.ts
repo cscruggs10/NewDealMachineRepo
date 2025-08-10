@@ -14,17 +14,21 @@ export { cloudinary };
 export function generateSignedUploadParams() {
   const timestamp = Math.round(new Date().getTime() / 1000);
   
-  const params = {
+  // Only include parameters that Cloudinary uses for signature verification
+  const signatureParams = {
+    eager: 'c_thumb,w_300,h_200',
+    folder: 'dealmachine-vehicle-videos',
+    timestamp: timestamp,
+  };
+
+  const signature = cloudinary.utils.api_sign_request(signatureParams, env.CLOUDINARY_API_SECRET.trim());
+
+  // Return all parameters needed for upload
+  return {
     timestamp,
     folder: 'dealmachine-vehicle-videos',
     resource_type: 'video',
-    eager: 'c_thumb,w_300,h_200', // Generate thumbnail
-  };
-
-  const signature = cloudinary.utils.api_sign_request(params, env.CLOUDINARY_API_SECRET.trim());
-
-  return {
-    ...params,
+    eager: 'c_thumb,w_300,h_200',
     signature,
     api_key: env.CLOUDINARY_API_KEY.trim(),
     cloud_name: env.CLOUDINARY_CLOUD_NAME.trim(),
