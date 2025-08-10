@@ -4,7 +4,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
-const app = express();
+export const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -39,10 +39,15 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+// Initialize routes immediately for serverless
+let serverInitialized = false;
+
+export async function initializeServer() {
+  if (serverInitialized) return app;
+  
   try {
-    log('Starting server initialization...');
-    const server = await registerRoutes(app);
+    log('Initializing serverless function...');
+    await registerRoutes(app);
 
     // Global error handler
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -53,25 +58,38 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
-    // Setup Vite or static serving based on environment
-    if (app.get("env") === "development") {
-      log('Setting up Vite for development...');
-      await setupVite(app, server);
-      log('Vite setup completed successfully!');
-    } else {
-      log('Setting up static file serving for production...');
+    // For production/serverless, serve static files
+    if (process.env.NODE_ENV === "production") {
+      log('Setting up static file serving...');
       serveStatic(app);
     }
 
-    // Start server  
-    const port = 3002;
-    server.listen(port, '0.0.0.0', () => {
-      log(`Server running on http://localhost:${port}`);
-      log(`Server also accessible on http://10.1.10.154:${port}`);
-      log(`Mobile access: http://10.1.10.154:${port}`);
-    });
+    serverInitialized = true;
+    log('Server initialization completed!');
+    return app;
   } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+    console.error('Failed to initialize server:', error);
+    throw error;
   }
-})();
+}
+
+// For local development
+if (process.env.NODE_ENV !== "production") {
+  (async () => {
+    try {
+      const server = await registerRoutes(app);
+      
+      if (app.get("env") === "development") {
+        await setupVite(app, server);
+      }
+
+      const port = 3002;
+      server.listen(port, '0.0.0.0', () => {
+        log(`Server running on http://localhost:${port}`);
+      });
+    } catch (error) {
+      console.error('Failed to start development server:', error);
+      process.exit(1);
+    }
+  })();
+}
