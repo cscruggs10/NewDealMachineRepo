@@ -293,6 +293,19 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Test endpoint for debugging
+  app.post("/api/test-vehicle", async (req, res) => {
+    console.log("TEST ENDPOINT - Raw body:", req.body);
+    console.log("TEST ENDPOINT - Headers:", req.headers);
+    res.json({ 
+      success: true, 
+      received: req.body,
+      bodyType: typeof req.body,
+      isArray: Array.isArray(req.body),
+      keys: Object.keys(req.body || {})
+    });
+  });
+
   // Vehicle upload routes
   app.post("/api/vehicles", async (req, res) => {
     console.log('Received vehicle data:', req.body);

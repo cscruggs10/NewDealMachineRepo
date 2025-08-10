@@ -21,6 +21,7 @@ export default function UploadPage() {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [walkaroundVideo, setWalkaroundVideo] = useState<File | null>(null);
   const [isDecodingVin, setIsDecodingVin] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   const passwordForm = useForm({
     defaultValues: {
@@ -35,6 +36,12 @@ export default function UploadPage() {
       videos: [],
     },
   });
+
+  const addDebug = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugInfo(prev => [...prev, `[${timestamp}] ${message}`]);
+    console.log(`[DEBUG ${timestamp}] ${message}`);
+  };
 
   const verifyPassword = (data: { password: string }) => {
     if (data.password === "1211") {
@@ -91,24 +98,36 @@ export default function UploadPage() {
     mutationFn: async (data: any) => {
       try {
         setUploadingMedia(true);
+        addDebug("Starting vehicle creation process");
+        addDebug(`Initial data: ${JSON.stringify(data)}`);
+        
         let uploadedVideos: string[] = [];
 
         if (walkaroundVideo) {
+          addDebug(`Video file: ${walkaroundVideo.name}, Size: ${(walkaroundVideo.size / 1024 / 1024).toFixed(2)}MB, Type: ${walkaroundVideo.type}`);
+          
           const formData = new FormData();
           formData.append('files', walkaroundVideo);
-
-          const response = await fetch('/api/upload', {
+          
+          addDebug("Uploading video to /api/upload...");
+          const uploadResponse = await fetch('/api/upload', {
             method: 'POST',
             body: formData
           });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || errorData.error || 'Failed to upload video');
+          addDebug(`Upload response status: ${uploadResponse.status}`);
+          
+          if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            addDebug(`Upload failed: ${errorText}`);
+            throw new Error(errorText || 'Failed to upload video');
           }
 
-          const urls = await response.json();
+          const urls = await uploadResponse.json();
+          addDebug(`Upload successful. URLs received: ${JSON.stringify(urls)}`);
           uploadedVideos = urls;
+        } else {
+          addDebug("No video file to upload");
         }
 
         const vehicleData = {
@@ -116,19 +135,16 @@ export default function UploadPage() {
           videos: uploadedVideos,
         };
 
-        console.log('Submitting vehicle data:', vehicleData);
-        console.log('Data types:', {
-          vin: typeof vehicleData.vin,
-          year: typeof vehicleData.year,
-          make: typeof vehicleData.make,
-          model: typeof vehicleData.model,
-          videos: Array.isArray(vehicleData.videos)
-        });
+        addDebug(`Final vehicle data being sent: ${JSON.stringify(vehicleData)}`);
+        addDebug(`Data types: vin=${typeof vehicleData.vin}, videos=${Array.isArray(vehicleData.videos) ? 'array' : typeof vehicleData.videos}`);
 
         const response = await apiRequest("POST", "/api/vehicles", vehicleData);
-        return response.json();
-      } catch (error) {
-        console.error('Upload/creation error:', error);
+        const result = await response.json();
+        addDebug(`Vehicle creation successful: ${JSON.stringify(result)}`);
+        return result;
+      } catch (error: any) {
+        addDebug(`ERROR: ${error.message}`);
+        addDebug(`Error stack: ${error.stack}`);
         throw error;
       } finally {
         setUploadingMedia(false);
@@ -350,27 +366,70 @@ Debug Info:
               <p className="text-sm text-muted-foreground">
                 Please include footage of any damage in your walkthrough video
               </p>
+              
+              {/* Debug Info Panel */}
+              {debugInfo.length > 0 && (
+                <div className="bg-gray-100 p-3 rounded-md max-h-40 overflow-y-auto">
+                  <p className="font-semibold text-sm mb-2">Debug Log:</p>
+                  {debugInfo.map((info, index) => (
+                    <p key={index} className="text-xs font-mono">{info}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Current Data Display */}
+              <div className="bg-blue-50 p-3 rounded-md">
+                <p className="font-semibold text-sm mb-1">Current Data:</p>
+                <p className="text-xs">VIN: {vehicleForm.getValues('vin')}</p>
+                <p className="text-xs">Video: {walkaroundVideo ? `${walkaroundVideo.name} (${(walkaroundVideo.size / 1024 / 1024).toFixed(2)}MB)` : 'No video selected'}</p>
+              </div>
+
               <FileUploader
                 accept="video/*"
                 maxFiles={1}
-                onFilesSelected={(files) => setWalkaroundVideo(files[0])}
+                onFilesSelected={(files) => {
+                  setWalkaroundVideo(files[0]);
+                  if (files[0]) {
+                    addDebug(`Video selected: ${files[0].name}, Type: ${files[0].type}`);
+                  }
+                }}
               />
-              <Button 
-                onClick={() => handleNext()}
-                disabled={createVehicle.isPending || uploadingMedia}
-              >
-                {(createVehicle.isPending || uploadingMedia) ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Submit for Review
-                  </>
-                )}
-              </Button>
+
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => handleNext()}
+                  disabled={createVehicle.isPending || uploadingMedia}
+                  className="flex-1"
+                >
+                  {(createVehicle.isPending || uploadingMedia) ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Submit for Review
+                    </>
+                  )}
+                </Button>
+
+                {/* Test button without video */}
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    addDebug("Testing without video upload");
+                    const testData = {
+                      vin: vehicleForm.getValues('vin'),
+                      videos: []
+                    };
+                    createVehicle.mutate(testData);
+                  }}
+                  disabled={createVehicle.isPending || uploadingMedia}
+                >
+                  Test No Video
+                </Button>
+              </div>
             </CardContent>
           </>
         );
