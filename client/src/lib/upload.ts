@@ -57,11 +57,12 @@ export async function uploadVideoToCloudinary(file: File): Promise<{ videoUrl: s
     }
 
     const uploadParams = await signatureResponse.json();
+    console.log("Received upload params:", uploadParams);
 
     // Upload directly to Cloudinary
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('timestamp', uploadParams.timestamp);
+    formData.append('timestamp', uploadParams.timestamp.toString());
     formData.append('signature', uploadParams.signature);
     formData.append('api_key', uploadParams.api_key);
     formData.append('folder', uploadParams.folder);
