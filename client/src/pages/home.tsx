@@ -37,7 +37,7 @@ export default function Home() {
               </Button>
             </div>
             <p className="text-lg md:text-xl opacity-90 leading-relaxed max-w-4xl mx-auto mb-10">
-              Deal Machine replaces your traditional buyer with a complete wholesale solution. We source, buy, recondition to your standards, and deliver certified units ready for your lot - all while you focus on what matters: selling cars. 🚗 [Updated via GitHub]
+              Deal Machine replaces your traditional buyer with a complete wholesale solution. We source, buy, recondition to your standards, and deliver certified units ready for your lot - all while you focus on what matters: selling cars.
             </p>
             <div className="flex flex-col items-center gap-3">
               <Button 
