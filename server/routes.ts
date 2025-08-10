@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertVehicleSchema, insertOfferSchema, insertBuyCodeSchema, createInitialVehicleSchema, insertDealerSchema } from "@shared/schema";
+import { sql } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import express from 'express';
@@ -304,6 +305,42 @@ export async function registerRoutes(app: Express) {
       isArray: Array.isArray(req.body),
       keys: Object.keys(req.body || {})
     });
+  });
+
+  // Health check endpoint
+  app.get("/api/health", async (req, res) => {
+    try {
+      // Test database connection
+      const testQuery = await storage.db.execute(sql`SELECT 1 as test`);
+      
+      res.json({
+        status: "OK",
+        timestamp: new Date().toISOString(),
+        environment: {
+          nodeEnv: process.env.NODE_ENV,
+          hasDatabaseUrl: !!process.env.DATABASE_URL,
+          hasSessionSecret: !!process.env.SESSION_SECRET
+        },
+        database: {
+          connected: true,
+          testQuery: testQuery.rows[0]
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: "ERROR",
+        timestamp: new Date().toISOString(),
+        environment: {
+          nodeEnv: process.env.NODE_ENV,
+          hasDatabaseUrl: !!process.env.DATABASE_URL,
+          hasSessionSecret: !!process.env.SESSION_SECRET
+        },
+        database: {
+          connected: false,
+          error: error.message
+        }
+      });
+    }
   });
 
   // Vehicle upload routes
