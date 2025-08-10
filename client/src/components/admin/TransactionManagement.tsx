@@ -12,9 +12,13 @@ import { formatCurrency } from "@/lib/utils";
 export function TransactionManagement() {
   const { toast } = useToast();
 
-  const { data: transactions, isLoading } = useQuery<(Transaction & { vehicle: Vehicle; dealerName: string })[]>({
+  const { data: transactions, isLoading, error } = useQuery<(Transaction & { vehicle: Vehicle; dealerName: string })[]>({
     queryKey: ["/api/transactions"],
+    retry: false,
   });
+  
+  // Debug info
+  console.log('Transactions query result:', { transactions, isLoading, error });
 
   const updateTransaction = useMutation({
     mutationFn: async ({ id, status, isPaid }: { id: number; status?: string; isPaid?: boolean }) => {
@@ -68,6 +72,16 @@ export function TransactionManagement() {
         <CardTitle>Manage Transactions</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* DEBUG INFO */}
+        <div className="mb-4 p-3 bg-gray-100 rounded">
+          <p><strong>Debug:</strong> Found {transactions?.length || 0} transactions</p>
+          <p><strong>Loading:</strong> {isLoading ? 'Yes' : 'No'}</p>
+          <p><strong>Error:</strong> {error ? 'Yes - check console' : 'No'}</p>
+          {transactions && transactions.length > 0 && (
+            <p><strong>First transaction ID:</strong> {transactions[0].id}</p>
+          )}
+        </div>
+        
         <div className="space-y-4">
           {transactions?.map((transaction) => (
             <Card key={transaction.id}>
