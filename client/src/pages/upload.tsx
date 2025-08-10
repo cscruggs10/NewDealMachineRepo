@@ -360,7 +360,7 @@ Debug Info:
         return (
           <>
             <CardHeader>
-              <CardTitle>Vehicle Walkaround Video</CardTitle>
+              <CardTitle>Vehicle Walkaround Video [DEBUG MODE]</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">

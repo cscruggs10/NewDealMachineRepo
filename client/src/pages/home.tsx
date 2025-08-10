@@ -21,7 +21,7 @@ export default function Home() {
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 relative">
               Your Buyer.<br />
               <span className="relative inline-block">
-                Replaced. [v2]
+                Replaced.
                 <svg className="absolute -top-2 -right-8 md:-right-12 w-8 h-8 md:w-12 md:h-12 text-yellow-400 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
