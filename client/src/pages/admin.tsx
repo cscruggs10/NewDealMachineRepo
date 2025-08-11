@@ -5,6 +5,7 @@ import { PricingQueue } from "@/components/admin/PricingQueue";
 import { VehicleComplete } from "@/components/admin/VehicleComplete";
 import { DealerManagement } from "@/components/admin/DealerManagement";
 import { TransactionManagement } from "@/components/admin/TransactionManagement";
+import { OfferManagement } from "@/components/admin/OfferManagement";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Vehicle, Offer } from "@shared/schema";
@@ -160,18 +161,8 @@ export default function Admin() {
             <TransactionManagement />
           </TabsContent>
 
-          <TabsContent value="offers">
-            <Card>
-              <CardHeader>
-                <CardTitle>Offer Management</CardTitle>
-                <CardDescription>
-                  Review and manage incoming offers
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Implement offer management UI */}
-              </CardContent>
-            </Card>
+          <TabsContent value="offers" className="mt-6">
+            <OfferManagement />
           </TabsContent>
 
           <TabsContent value="codes">

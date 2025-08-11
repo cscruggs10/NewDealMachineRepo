@@ -403,6 +403,31 @@ export async function registerRoutes(app: Express) {
     });
   });
 
+  // Debug endpoint to check form content
+  app.get("/api/debug/form-check", async (req, res) => {
+    const fs = await import('fs');
+    const path = await import('path');
+    try {
+      const formPath = path.join(process.cwd(), 'client/src/components/forms/OfferForm.tsx');
+      const content = await fs.promises.readFile(formPath, 'utf-8');
+      const hasBuyCode = content.includes('buyCode');
+      const hasDealerName = content.includes('dealerName');
+      const hasContactInfo = content.includes('contactInfo');
+      
+      res.json({
+        status: "Form content check",
+        path: formPath,
+        hasBuyCode,
+        hasDealerName,
+        hasContactInfo,
+        firstLine: content.split('\n')[0],
+        formFields: hasBuyCode && !hasDealerName && !hasContactInfo ? "CORRECT - Only buyCode" : "WRONG - Old fields present"
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Health check endpoint
   app.get("/api/health", async (req, res) => {
     try {
@@ -668,13 +693,88 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/dealer/offers", async (req, res) => {
     try {
-      // Get dealer ID from the session - TODO: Add proper auth
-      const dealerId = 1; // Temporarily hardcoded
+      // Try to get dealer ID from session or default to 1 for testing
+      let dealerId = req.session?.dealerId || 1;
+      
+      // Expire old offers first
+      await storage.expireOldOffers();
+      
       const offers = await storage.getDealerOffers(dealerId);
-      res.json(offers);
+      const offersWithDetails = await Promise.all(
+        offers.map(async (offer) => {
+          const vehicle = await storage.getVehicle(offer.vehicleId);
+          const activities = await storage.getOfferActivities(offer.id);
+          return { ...offer, vehicle, activities };
+        })
+      );
+      res.json(offersWithDetails);
     } catch (error) {
       console.error('Error fetching dealer offers:', error);
       res.status(500).json({ message: "Failed to fetch offers" });
+    }
+  });
+
+  // Dealer responds to counter offer
+  app.patch("/api/dealer/offers/:id", async (req, res) => {
+    try {
+      const { action } = req.body; // 'accept' or 'decline'
+      const offerId = parseInt(req.params.id);
+      
+      // Get the current offer
+      const currentOffer = await storage.getOfferWithActivities(offerId);
+      if (!currentOffer) {
+        return res.status(404).json({ message: "Offer not found" });
+      }
+
+      if (currentOffer.status !== 'countered') {
+        return res.status(400).json({ message: "Offer is not in countered state" });
+      }
+
+      let newStatus = '';
+      let activityMessage = '';
+      let actionType = '';
+
+      if (action === 'accept') {
+        newStatus = 'accepted';
+        actionType = 'counter_accepted';
+        activityMessage = `Dealer accepted counter offer for ${currentOffer.counterAmount}`;
+        
+        // Create transaction and mark vehicle as sold
+        const vehicle = await storage.getVehicle(currentOffer.vehicleId);
+        if (vehicle) {
+          await storage.createTransaction({
+            vehicleId: currentOffer.vehicleId,
+            dealerId: currentOffer.dealerId,
+            buyCodeId: 1, // We'll need to track this better
+            amount: currentOffer.counterAmount || currentOffer.amount,
+            status: 'pending'
+          });
+          
+          await storage.updateVehicle(currentOffer.vehicleId, { status: 'sold' });
+        }
+      } else {
+        newStatus = 'declined';
+        actionType = 'counter_declined';
+        activityMessage = 'Dealer declined counter offer';
+      }
+
+      // Update the offer
+      const offer = await storage.updateOffer(offerId, { status: newStatus });
+
+      // Create activity record
+      await storage.createOfferActivity({
+        offerId,
+        actorType: 'dealer',
+        actorId: currentOffer.dealerId,
+        actionType,
+        amount: currentOffer.counterAmount || currentOffer.amount,
+        message: activityMessage,
+      });
+
+      res.json(offer);
+    } catch (error) {
+      console.error('Error updating dealer offer:', error);
+      res.status(500).json({ message: "Failed to update offer" });
     }
   });
 
@@ -734,6 +834,167 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Error uploading bill of sale:', error);
       res.status(500).json({ message: "Failed to upload bill of sale" });
+    }
+  });
+
+  // Create offer route with buy code verification
+  app.post("/api/vehicles/:vehicleId/offers", async (req, res) => {
+    try {
+      const { amount, buyCode } = req.body;
+      const vehicleId = parseInt(req.params.vehicleId);
+
+      if (!amount || !buyCode) {
+        return res.status(400).json({ message: "Amount and buy code are required" });
+      }
+
+      // Verify buy code and get dealer info
+      const buyCodeRecord = await storage.getBuyCode(buyCode);
+      if (!buyCodeRecord || !buyCodeRecord.active) {
+        return res.status(403).json({ message: "Invalid or inactive buy code" });
+      }
+
+      const dealer = await storage.getDealerById(buyCodeRecord.dealerId);
+      if (!dealer || !dealer.active) {
+        return res.status(403).json({ message: "Dealer account is inactive" });
+      }
+
+      // Check if vehicle exists and is available for offers
+      const vehicle = await storage.getVehicle(vehicleId);
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      if (vehicle.status === 'sold') {
+        return res.status(400).json({ message: "Vehicle is no longer available" });
+      }
+
+      // Set expiration to 48 hours from now
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 48);
+
+      // Create offer with activity tracking
+      const offer = await storage.createOfferWithActivity(
+        {
+          vehicleId,
+          dealerId: dealer.id,
+          amount: amount.toString(),
+          expiresAt,
+        },
+        {
+          offerId: 0, // Will be set by createOfferWithActivity
+          actorType: 'dealer',
+          actorId: dealer.id,
+          actionType: 'offer_submitted',
+          amount: amount.toString(),
+          message: `Offer submitted by ${dealer.dealerName}`,
+        }
+      );
+
+      console.log(`New offer received: ${dealer.dealerName} offered ${amount} for vehicle ${vehicleId}, expires at ${expiresAt}`);
+
+      res.status(201).json(offer);
+    } catch (error) {
+      console.error('Error creating offer:', error);
+      res.status(500).json({ message: "Failed to create offer" });
+    }
+  });
+
+  // Get all offers (admin) - also expires old offers
+  app.get("/api/offers", async (_req, res) => {
+    try {
+      // First expire any old offers
+      await storage.expireOldOffers();
+      
+      const offers = await storage.getAllOffers();
+      const offersWithDetails = await Promise.all(
+        offers.map(async (offer) => {
+          const vehicle = await storage.getVehicle(offer.vehicleId);
+          const dealer = await storage.getDealerById(offer.dealerId);
+          const activities = await storage.getOfferActivities(offer.id);
+          return { 
+            ...offer, 
+            vehicle,
+            dealer: { id: dealer?.id, dealerName: dealer?.dealerName },
+            activities 
+          };
+        })
+      );
+      res.json(offersWithDetails);
+    } catch (error) {
+      console.error('Error fetching offers:', error);
+      res.status(500).json({ message: "Failed to fetch offers" });
+    }
+  });
+
+  // Update offer status (admin) - handle counter-offers, acceptance, decline
+  app.patch("/api/offers/:id", async (req, res) => {
+    try {
+      const { status, counterAmount, counterMessage } = req.body;
+      const offerId = parseInt(req.params.id);
+      
+      // Get the current offer
+      const currentOffer = await storage.getOfferWithActivities(offerId);
+      if (!currentOffer) {
+        return res.status(404).json({ message: "Offer not found" });
+      }
+
+      // Prepare update data
+      const updateData: any = { status };
+      if (counterAmount) updateData.counterAmount = counterAmount.toString();
+      if (counterMessage) updateData.counterMessage = counterMessage;
+
+      // Update the offer
+      const offer = await storage.updateOffer(offerId, updateData);
+
+      // Create activity record
+      let activityMessage = '';
+      let actionType = '';
+      
+      switch (status) {
+        case 'accepted':
+          actionType = 'offer_accepted';
+          activityMessage = `Offer accepted by admin for ${offer.amount}`;
+          
+          // Create transaction and mark vehicle as sold
+          const vehicle = await storage.getVehicle(offer.vehicleId);
+          if (vehicle) {
+            await storage.createTransaction({
+              vehicleId: offer.vehicleId,
+              dealerId: offer.dealerId,
+              buyCodeId: 1, // We'll need to track this better
+              amount: offer.amount,
+              status: 'pending'
+            });
+            
+            await storage.updateVehicle(offer.vehicleId, { status: 'sold' });
+          }
+          break;
+          
+        case 'declined':
+          actionType = 'offer_declined';
+          activityMessage = 'Offer declined by admin';
+          break;
+          
+        case 'countered':
+          actionType = 'offer_countered';
+          activityMessage = `Admin counter-offered ${counterAmount}${counterMessage ? ': ' + counterMessage : ''}`;
+          break;
+      }
+
+      // Create activity record
+      await storage.createOfferActivity({
+        offerId,
+        actorType: 'admin',
+        actorId: 1, // We'd need admin user ID here
+        actionType,
+        amount: counterAmount || offer.amount,
+        message: activityMessage,
+      });
+
+      res.json(offer);
+    } catch (error) {
+      console.error('Error updating offer:', error);
+      res.status(500).json({ message: "Failed to update offer" });
     }
   });
 

@@ -18,6 +18,7 @@ export default function VehicleDetails() {
   const { id } = useParams();
   const { toast } = useToast();
   const [isBuyDialogOpen, setIsBuyDialogOpen] = useState(false);
+  const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
 
   const { data: vehicle, isLoading } = useQuery<Vehicle>({
     queryKey: [`/api/vehicles/${id}`],
@@ -240,9 +241,9 @@ export default function VehicleDetails() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 pt-6">
-              <Dialog>
+              <Dialog open={isOfferDialogOpen} onOpenChange={setIsOfferDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full" onClick={() => setIsOfferDialogOpen(true)}>
                     Make Offer
                   </Button>
                 </DialogTrigger>
@@ -250,7 +251,7 @@ export default function VehicleDetails() {
                   <DialogHeader>
                     <DialogTitle>Make an Offer</DialogTitle>
                   </DialogHeader>
-                  <OfferForm vehicleId={vehicle?.id || 0} />
+                  <OfferForm vehicleId={vehicle?.id || 0} onSuccess={() => setIsOfferDialogOpen(false)} />
                 </DialogContent>
               </Dialog>
 

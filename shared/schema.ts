@@ -68,7 +68,22 @@ export const offers = pgTable("offers", {
   vehicleId: integer("vehicle_id").notNull(),
   dealerId: integer("dealer_id").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").notNull().default('pending'),
+  status: text("status").notNull().default('pending'), // 'pending', 'countered', 'accepted', 'declined', 'expired'
+  counterAmount: decimal("counter_amount", { precision: 10, scale: 2 }),
+  counterMessage: text("counter_message"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const offerActivities = pgTable("offer_activities", {
+  id: serial("id").primaryKey(),
+  offerId: integer("offer_id").notNull(),
+  actorType: text("actor_type").notNull(), // 'dealer', 'admin'
+  actorId: integer("actor_id"), // dealer_id for dealers, admin_user_id for admins
+  actionType: text("action_type").notNull(), // 'offer_submitted', 'offer_countered', 'offer_accepted', 'offer_declined'
+  amount: decimal("amount", { precision: 10, scale: 2 }),
+  message: text("message"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -127,7 +142,16 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
 export const insertOfferSchema = createInsertSchema(offers).omit({
   id: true,
   status: true,
-  createdAt: true
+  counterAmount: true,
+  counterMessage: true,
+  expiresAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOfferActivitySchema = createInsertSchema(offerActivities).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertAdminSchema = createInsertSchema(adminUsers).omit({
@@ -146,5 +170,7 @@ export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Offer = typeof offers.$inferSelect;
 export type InsertOffer = z.infer<typeof insertOfferSchema>;
+export type OfferActivity = typeof offerActivities.$inferSelect;
+export type InsertOfferActivity = z.infer<typeof insertOfferActivitySchema>;
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type InsertAdminUser = z.infer<typeof insertAdminSchema>;

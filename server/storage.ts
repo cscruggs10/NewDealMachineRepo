@@ -2,14 +2,15 @@ import {
   type Vehicle, type InsertVehicle,
   type BuyCode, type InsertBuyCode,
   type Offer, type InsertOffer,
+  type OfferActivity, type InsertOfferActivity,
   type Dealer, type InsertDealer,
   type Transaction, type InsertTransaction,
-  vehicles, buyCodes, offers, dealers, transactions,
+  vehicles, buyCodes, offers, offerActivities, dealers, transactions,
   type AdminUser, type InsertAdminUser,
   adminUsers,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, lt } from "drizzle-orm";
 
 export interface IStorage {
   // Vehicles
@@ -43,9 +44,19 @@ export interface IStorage {
 
   // Offers
   getOffers(vehicleId: number): Promise<Offer[]>;
+  getAllOffers(): Promise<Offer[]>;
   getDealerOffers(dealerId: number): Promise<Offer[]>;
   createOffer(offer: InsertOffer): Promise<Offer>;
-  updateOfferStatus(id: number, status: string): Promise<Offer>;
+  updateOffer(id: number, update: Partial<Offer>): Promise<Offer>;
+  getOfferWithActivities(offerId: number): Promise<(Offer & { activities: OfferActivity[] }) | undefined>;
+  
+  // Offer Activities
+  createOfferActivity(activity: InsertOfferActivity): Promise<OfferActivity>;
+  getOfferActivities(offerId: number): Promise<OfferActivity[]>;
+  
+  // Offer Management
+  expireOldOffers(): Promise<void>;
+  createOfferWithActivity(offer: InsertOffer, activity: InsertOfferActivity): Promise<Offer>;
 
   // Admin Users
   getAdminByEmail(email: string): Promise<AdminUser | undefined>;
@@ -204,6 +215,10 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(offers).where(eq(offers.vehicleId, vehicleId));
   }
 
+  async getAllOffers(): Promise<Offer[]> {
+    return db.select().from(offers);
+  }
+
   async getDealerOffers(dealerId: number): Promise<Offer[]> {
     return db.select().from(offers).where(eq(offers.dealerId, dealerId));
   }
@@ -213,13 +228,55 @@ export class DatabaseStorage implements IStorage {
     return offer;
   }
 
-  async updateOfferStatus(id: number, status: string): Promise<Offer> {
+  async updateOffer(id: number, update: Partial<Offer>): Promise<Offer> {
     const [offer] = await db
       .update(offers)
-      .set({ status })
+      .set({ ...update, updatedAt: new Date() })
       .where(eq(offers.id, id))
       .returning();
     return offer;
+  }
+
+  async getOfferWithActivities(offerId: number): Promise<(Offer & { activities: OfferActivity[] }) | undefined> {
+    const [offer] = await db.select().from(offers).where(eq(offers.id, offerId));
+    if (!offer) return undefined;
+    
+    const activities = await this.getOfferActivities(offerId);
+    return { ...offer, activities };
+  }
+
+  // Offer Activities
+  async createOfferActivity(activity: InsertOfferActivity): Promise<OfferActivity> {
+    const [offerActivity] = await db.insert(offerActivities).values(activity).returning();
+    return offerActivity;
+  }
+
+  async getOfferActivities(offerId: number): Promise<OfferActivity[]> {
+    return db.select().from(offerActivities).where(eq(offerActivities.offerId, offerId));
+  }
+
+  // Offer Management
+  async expireOldOffers(): Promise<void> {
+    await db
+      .update(offers)
+      .set({ status: 'expired', updatedAt: new Date() })
+      .where(and(
+        lt(offers.expiresAt, new Date()),
+        eq(offers.status, 'pending')
+      ));
+  }
+
+  async createOfferWithActivity(offer: InsertOffer, activity: InsertOfferActivity): Promise<Offer> {
+    // Create the offer first
+    const createdOffer = await this.createOffer(offer);
+    
+    // Then create the activity record with the offer ID
+    await this.createOfferActivity({
+      ...activity,
+      offerId: createdOffer.id,
+    });
+    
+    return createdOffer;
   }
 
   // Admin Users

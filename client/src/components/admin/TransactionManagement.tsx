@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 export function TransactionManagement() {
   const { toast } = useToast();
@@ -89,9 +90,16 @@ export function TransactionManagement() {
                 <div className="space-y-4">
                   {/* Transaction Details */}
                   <div>
-                    <h3 className="font-medium">
-                      {transaction.vehicle.year} {transaction.vehicle.make} {transaction.vehicle.model}
-                    </h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-medium">
+                        {transaction.vehicle.year} {transaction.vehicle.make} {transaction.vehicle.model}
+                      </h3>
+                      {transaction.cancelled ? (
+                        <Badge variant="destructive">Cancelled</Badge>
+                      ) : (
+                        <Badge variant="default">Active</Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       Transaction ID: {transaction.id}
                     </p>
@@ -103,52 +111,63 @@ export function TransactionManagement() {
                     </p>
                   </div>
 
-                  {/* Status Controls */}
-                  <div className="flex items-center gap-4">
-                    <Button
-                      variant={transaction.isPaid ? "default" : "outline"}
-                      onClick={() => updateTransaction.mutate({ 
-                        id: transaction.id, 
-                        isPaid: !transaction.isPaid 
-                      })}
-                    >
-                      {transaction.isPaid ? "Paid" : "Mark as Paid"}
-                    </Button>
-
-                    <Button
-                      variant={transaction.status === 'completed' ? "default" : "outline"}
-                      onClick={() => updateTransaction.mutate({ 
-                        id: transaction.id, 
-                        status: transaction.status === 'completed' ? 'pending' : 'completed'
-                      })}
-                    >
-                      {transaction.status === 'completed' ? "Completed" : "Mark Complete"}
-                    </Button>
-                  </div>
-
-                  {/* Bill of Sale Upload */}
-                  <div className="flex items-center gap-4">
-                    <Input
-                      type="file"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          uploadBillOfSale.mutate({ id: transaction.id, file });
-                        }
-                      }}
-                      accept=".pdf,.png,.jpg,.jpeg"
-                    />
-                    {transaction.billOfSale && (
-                      <a 
-                        href={transaction.billOfSale}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
+                  {/* Status Controls - Disabled for cancelled transactions */}
+                  {!transaction.cancelled && (
+                    <div className="flex items-center gap-4">
+                      <Button
+                        variant={transaction.isPaid ? "default" : "outline"}
+                        onClick={() => updateTransaction.mutate({ 
+                          id: transaction.id, 
+                          isPaid: !transaction.isPaid 
+                        })}
                       >
-                        View Bill of Sale
-                      </a>
-                    )}
-                  </div>
+                        {transaction.isPaid ? "Paid" : "Mark as Paid"}
+                      </Button>
+
+                      <Button
+                        variant={transaction.status === 'completed' ? "default" : "outline"}
+                        onClick={() => updateTransaction.mutate({ 
+                          id: transaction.id, 
+                          status: transaction.status === 'completed' ? 'pending' : 'completed'
+                        })}
+                      >
+                        {transaction.status === 'completed' ? "Completed" : "Mark Complete"}
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Bill of Sale Upload - Disabled for cancelled transactions */}
+                  {!transaction.cancelled && (
+                    <div className="flex items-center gap-4">
+                      <Input
+                        type="file"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            uploadBillOfSale.mutate({ id: transaction.id, file });
+                          }
+                        }}
+                        accept=".pdf,.png,.jpg,.jpeg"
+                      />
+                      {transaction.billOfSale && (
+                        <a 
+                          href={transaction.billOfSale}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          View Bill of Sale
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Show reason for cancelled transactions */}
+                  {transaction.cancelled && (
+                    <div className="text-sm text-muted-foreground bg-gray-50 p-2 rounded">
+                      <strong>Cancelled:</strong> Vehicle was re-listed for sale
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
