@@ -57,11 +57,6 @@ export function OfferForm({ vehicleId, onSuccess }: OfferFormProps) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-red-100 p-4 rounded-lg border-2 border-red-400">
-        <p className="text-lg text-red-800 font-bold">🚨 NEW FORM LOADED - DECEMBER 2024 🚨</p>
-        <p className="text-sm text-red-700">This form now requires a buy code for authentication</p>
-        <p className="text-xs text-red-600">If you see dealer name/contact info fields, there's a cache issue</p>
-      </div>
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit((data) => submitOffer.mutate(data))} className="space-y-4">
