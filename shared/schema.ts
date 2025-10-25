@@ -33,10 +33,15 @@ export const vehicles = pgTable("vehicles", {
   description: text("description"),
   condition: text("condition"),
   videos: text("videos").array(),
+  videoThumbnails: text("video_thumbnails").array(), // URLs to video thumbnails from Cloudinary
   status: text("status").notNull().default('pending'), // 'pending', 'active', 'sold'
   inQueue: boolean("in_queue").notNull().default(true),
   billOfSale: text("bill_of_sale"), // URL to uploaded bill of sale document
   isPaid: boolean("is_paid").default(false),
+  // Recon section
+  reconExterior: text("recon_exterior"), // Exterior defects or "None Found"
+  reconMechanical: text("recon_mechanical"), // Mechanical defects or "None Found"
+  reconInterior: text("recon_interior"), // Interior defects or "None Found"
 });
 
 export const buyCodes = pgTable("buy_codes", {
@@ -102,6 +107,10 @@ export const insertDealerSchema = createInsertSchema(dealers).omit({
 export const createInitialVehicleSchema = z.object({
   vin: z.string().length(17, "Please enter the full 17-character VIN"),
   videos: z.array(z.string()).optional().default([]),
+  videoThumbnails: z.array(z.string()).optional().default([]),
+  reconExterior: z.string().optional(),
+  reconMechanical: z.string().optional(),
+  reconInterior: z.string().optional(),
 });
 
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({
@@ -122,6 +131,10 @@ export const insertVehicleSchema = createInsertSchema(vehicles).omit({
     required_error: "Certification type is required",
   }),
   videos: z.array(z.string()).min(1, "Video walkthrough is required"),
+  videoThumbnails: z.array(z.string()).optional(),
+  reconExterior: z.string().optional(),
+  reconMechanical: z.string().optional(),
+  reconInterior: z.string().optional(),
 });
 
 export const insertBuyCodeSchema = createInsertSchema(buyCodes).omit({

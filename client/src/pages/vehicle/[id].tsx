@@ -164,6 +164,23 @@ export default function VehicleDetails() {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Video thumbnail as main image */}
+            {vehicle.videoThumbnails?.[0] && (
+              <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
+                <img
+                  src={vehicle.videoThumbnails[0]}
+                  alt={vehicleTitle}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                  <div className="text-white text-center">
+                    <VideoIcon className="h-12 w-12 mx-auto mb-2" />
+                    <p className="text-sm font-medium">Video Available</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {vehicle.videos?.[0] && (vehicle.videos[0].includes('.mp4') || vehicle.videos[0].includes('.mov') || vehicle.videos[0].includes('.MOV') || vehicle.videos[0].includes('.webm')) && (
               <Dialog>
                 <DialogTrigger asChild>
@@ -239,6 +256,33 @@ export default function VehicleDetails() {
                 )}
               </div>
             </div>
+
+            {/* Recon Report Section */}
+            {(vehicle.reconExterior || vehicle.reconMechanical || vehicle.reconInterior) && (
+              <div className="border-t pt-6">
+                <h3 className="font-semibold text-lg mb-4">Vehicle Inspection Report</h3>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-primary">Exterior</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {vehicle.reconExterior || "None Found"}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-primary">Mechanical</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {vehicle.reconMechanical || "None Found"}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-primary">Interior</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {vehicle.reconInterior || "None Found"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2 pt-6">
               <Dialog open={isOfferDialogOpen} onOpenChange={setIsOfferDialogOpen}>

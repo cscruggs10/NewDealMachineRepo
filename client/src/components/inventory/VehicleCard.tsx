@@ -110,19 +110,27 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
           <Dialog>
             <DialogTrigger asChild>
               <div className="relative aspect-video rounded-lg overflow-hidden bg-muted cursor-pointer group">
-                {/* Video preview/poster */}
-                <video 
-                  src={vehicle.videos[0]}
-                  className="w-full h-full object-cover"
-                  preload="metadata"
-                  playsInline
-                  muted
-                  onLoadedMetadata={(e) => {
-                    // Seek to the first frame to generate preview
-                    const video = e.target as HTMLVideoElement;
-                    video.currentTime = 0;
-                  }}
-                />
+                {/* Use thumbnail if available, otherwise fall back to video */}
+                {vehicle.videoThumbnails?.[0] ? (
+                  <img
+                    src={vehicle.videoThumbnails[0]}
+                    alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <video
+                    src={vehicle.videos[0]}
+                    className="w-full h-full object-cover"
+                    preload="metadata"
+                    playsInline
+                    muted
+                    onLoadedMetadata={(e) => {
+                      // Seek to the first frame to generate preview
+                      const video = e.target as HTMLVideoElement;
+                      video.currentTime = 0;
+                    }}
+                  />
+                )}
                 {/* Play button overlay */}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
                   <div className="rounded-full bg-white/90 p-3 group-hover:scale-110 transition-transform">

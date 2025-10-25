@@ -108,11 +108,19 @@ export function VehicleGrid({
               <div className="flex items-start gap-6">
                 {vehicle.videos?.[0] && (
                   <div className="relative aspect-video w-64 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                    <video 
-                      src={vehicle.videos[0]}
-                      className="w-full h-full object-cover"
-                      preload="metadata"
-                    />
+                    {vehicle.videoThumbnails?.[0] ? (
+                      <img
+                        src={vehicle.videoThumbnails[0]}
+                        alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <video
+                        src={vehicle.videos[0]}
+                        className="w-full h-full object-cover"
+                        preload="metadata"
+                      />
+                    )}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                       <VideoIcon className="h-8 w-8 text-white" />
                     </div>

@@ -5,6 +5,7 @@ import { createInitialVehicleSchema } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -14,7 +15,7 @@ import { Loader2, Upload, VideoIcon, Lock } from "lucide-react";
 import { decodeVIN, vinSchema } from "@/lib/vin";
 import { uploadVideoToCloudinary } from "@/lib/upload";
 
-type UploadStep = 'password' | 'vin' | 'video' | 'complete';
+type UploadStep = 'password' | 'vin' | 'video' | 'recon' | 'complete';
 
 export default function UploadPage() {
   const { toast } = useToast();
@@ -23,6 +24,9 @@ export default function UploadPage() {
   const [walkaroundVideo, setWalkaroundVideo] = useState<File | null>(null);
   const [isDecodingVin, setIsDecodingVin] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string>('');
+  const [uploadedThumbnailUrl, setUploadedThumbnailUrl] = useState<string>('');
+  const [vehicleId, setVehicleId] = useState<number | null>(null);
 
   const passwordForm = useForm({
     defaultValues: {
@@ -35,6 +39,14 @@ export default function UploadPage() {
     defaultValues: {
       vin: "",
       videos: [],
+    },
+  });
+
+  const reconForm = useForm({
+    defaultValues: {
+      reconExterior: "",
+      reconMechanical: "",
+      reconInterior: "",
     },
   });
 
@@ -95,26 +107,66 @@ export default function UploadPage() {
     }
   };
 
+  const updateVehicleRecon = useMutation({
+    mutationFn: async (reconData: { reconExterior: string; reconMechanical: string; reconInterior: string }) => {
+      if (!vehicleId) {
+        throw new Error("No vehicle ID available");
+      }
+
+      // Replace empty fields with "None Found"
+      const processedData = {
+        reconExterior: reconData.reconExterior.trim() || "None Found",
+        reconMechanical: reconData.reconMechanical.trim() || "None Found",
+        reconInterior: reconData.reconInterior.trim() || "None Found",
+      };
+
+      const response = await apiRequest("PATCH", `/api/vehicles/${vehicleId}`, processedData);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Vehicle added to queue for review",
+      });
+      vehicleForm.reset();
+      reconForm.reset();
+      setCurrentStep('complete');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update recon information",
+        variant: "destructive",
+      });
+    },
+  });
+
   const createVehicle = useMutation({
     mutationFn: async (data: any) => {
       try {
         setUploadingMedia(true);
         addDebug("Starting vehicle creation process");
         addDebug(`Initial data: ${JSON.stringify(data)}`);
-        
+
         let uploadedVideos: string[] = [];
+        let uploadedThumbnails: string[] = [];
 
         // Check if this is a test run (no video upload)
         if (data.skipVideoUpload) {
           addDebug("Skipping video upload (test mode)");
         } else if (walkaroundVideo) {
           addDebug(`Video file: ${walkaroundVideo.name}, Size: ${(walkaroundVideo.size / 1024 / 1024).toFixed(2)}MB, Type: ${walkaroundVideo.type}`);
-          
+
           addDebug("Uploading video to Cloudinary...");
           const { videoUrl, thumbnailUrl } = await uploadVideoToCloudinary(walkaroundVideo);
-          
+
           addDebug(`Cloudinary upload successful. Video: ${videoUrl}, Thumbnail: ${thumbnailUrl}`);
           uploadedVideos = [videoUrl];
+          uploadedThumbnails = [thumbnailUrl];
+
+          // Store for later use
+          setUploadedVideoUrl(videoUrl);
+          setUploadedThumbnailUrl(thumbnailUrl);
         } else {
           addDebug("No video file to upload");
         }
@@ -124,6 +176,7 @@ export default function UploadPage() {
         const vehicleData = {
           ...cleanData,
           videos: uploadedVideos,
+          videoThumbnails: uploadedThumbnails,
         };
 
         addDebug(`Final vehicle data being sent: ${JSON.stringify(vehicleData)}`);
@@ -164,13 +217,16 @@ export default function UploadPage() {
         setUploadingMedia(false);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Success",
-        description: "Vehicle added to queue for review",
+        description: "Vehicle created. Please fill out the recon section.",
       });
-      vehicleForm.reset();
-      setCurrentStep('complete');
+      // Store vehicle ID for later update
+      if (data && data.id) {
+        setVehicleId(data.id);
+      }
+      setCurrentStep('recon');
       setWalkaroundVideo(null);
     },
     onError: (error: any) => {
@@ -449,6 +505,93 @@ Debug Info:
           </>
         );
 
+      case 'recon':
+        return (
+          <>
+            <CardHeader>
+              <CardTitle>Vehicle Recon Report</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Form {...reconForm}>
+                <form onSubmit={reconForm.handleSubmit((data) => updateVehicleRecon.mutate(data))} className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Note any defects found during inspection. If no defects are present in a section, leave it blank and it will be marked as "None Found".
+                  </p>
+
+                  <FormField
+                    control={reconForm.control}
+                    name="reconExterior"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Exterior</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="List any exterior defects (dents, scratches, paint damage, etc.) or leave blank for 'None Found'"
+                            {...field}
+                            rows={4}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={reconForm.control}
+                    name="reconMechanical"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mechanical</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="List any mechanical issues (engine, transmission, brakes, etc.) or leave blank for 'None Found'"
+                            {...field}
+                            rows={4}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={reconForm.control}
+                    name="reconInterior"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Interior</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="List any interior defects (upholstery, dashboard, electronics, etc.) or leave blank for 'None Found'"
+                            {...field}
+                            rows={4}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={updateVehicleRecon.isPending}
+                  >
+                    {updateVehicleRecon.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>Submit for Review</>
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </>
+        );
+
       case 'complete':
         return (
           <>
@@ -459,12 +602,16 @@ Debug Info:
               <p className="text-center text-muted-foreground">
                 Vehicle has been added to the queue for review
               </p>
-              <Button 
+              <Button
                 className="mt-4 w-full"
                 onClick={() => {
                   setCurrentStep('password');
                   passwordForm.reset();
                   vehicleForm.reset();
+                  reconForm.reset();
+                  setVehicleId(null);
+                  setUploadedVideoUrl('');
+                  setUploadedThumbnailUrl('');
                 }}
               >
                 Upload Another Vehicle
